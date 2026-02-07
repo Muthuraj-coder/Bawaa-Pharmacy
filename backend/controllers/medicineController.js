@@ -79,86 +79,111 @@ async function addMedicineVariant(req, res) {
       return res.status(404).json({ detail: "Medicine not found" });
     }
 
-    if (
-      !brandName ||
-      !dosage ||
-      !form ||
-      !packing ||
-      !batchNumber ||
-      expiryDate == null
-    ) {
+    // Batch number and expiry date are critical for identifying the stock variant
+    if (!batchNumber || !batchNumber.trim() || expiryDate == null) {
       return res.status(400).json({
-        detail:
-          "brandName, dosage, form, packing, batchNumber and expiryDate are required",
+        detail: "batchNumber and expiryDate are required",
       });
     }
 
-    const parsedPurchase = Number(purchasePrice);
-    const parsedMrp = Number(mrp);
-    const parsedSelling = Number(sellingPrice);
-    const parsedQuantity = Number(quantity) || 0;
-
-    if (
-      Number.isNaN(parsedPurchase) ||
-      Number.isNaN(parsedMrp) ||
-      Number.isNaN(parsedSelling) ||
-      Number.isNaN(parsedQuantity) ||
-      parsedPurchase < 0 ||
-      parsedMrp < 0 ||
-      parsedSelling < 0 ||
-      parsedQuantity < 0
-    ) {
-      return res.status(400).json({
-        detail:
-          "purchasePrice, mrp, sellingPrice, and quantity must be numbers >= 0",
-      });
+    // Normalize expiryDate ensuring it represents the exact intended date (local day -> UTC 00:00)
+    // Avoids timezone shift issues (e.g., 2026-04-02 becoming 2026-04-01T18:30)
+    const inputDate = new Date(expiryDate);
+    if (isNaN(inputDate.getTime())) {
+      return res.status(400).json({ detail: "Invalid expiryDate" });
     }
 
-    if (parsedSelling > parsedMrp) {
-      return res.status(400).json({
-        detail: `Selling price (${parsedSelling}) cannot be greater than MRP (${parsedMrp})`,
-      });
-    }
+    // Construct a pure UTC date from the local date components
+    const expiryDateObj = new Date(Date.UTC(
+      inputDate.getFullYear(),
+      inputDate.getMonth(),
+      inputDate.getDate()
+    ));
 
-    // Normalize expiryDate to start of day (00:00:00.000) for consistent matching
-    // This ensures same calendar date always matches, regardless of time component
-    const expiryDateObj = new Date(expiryDate);
-    expiryDateObj.setHours(0, 0, 0, 0);
-
-    // Query for same day (handles existing records with non-normalized times)
+    // Prepare search range for same day matching (UTC day) 
     const startOfDay = new Date(expiryDateObj);
     const endOfDay = new Date(expiryDateObj);
-    endOfDay.setHours(23, 59, 59, 999);
+    endOfDay.setUTCHours(23, 59, 59, 999);
 
-    // Check if variant with same medicine + batchNumber + expiryDate exists
     const trimmedBatch = batchNumber.trim();
 
-    const existingVariant = await MedicineVariant.findOne({
+    // Check if variant with same medicine + batchNumber + expiryDate exists
+    let variant = await MedicineVariant.findOne({
       medicine: medicine._id,
       batchNumber: trimmedBatch,
       expiryDate: { $gte: startOfDay, $lte: endOfDay },
     });
 
-    let variant;
     let wasUpdated = false;
+    const parsedQuantity = quantity !== undefined ? Number(quantity) : 0;
+    const parsedPurchase = purchasePrice !== undefined ? Number(purchasePrice) : NaN;
+    const parsedMrp = mrp !== undefined ? Number(mrp) : NaN;
+    const parsedSelling = sellingPrice !== undefined ? Number(sellingPrice) : NaN;
 
-    if (existingVariant) {
-      // Merge stock: increment quantity, update prices
-      existingVariant.quantity += parsedQuantity;
-      existingVariant.purchasePrice = parsedPurchase;
-      existingVariant.mrp = parsedMrp;
-      existingVariant.sellingPrice = parsedSelling;
-      // Normalize expiryDate to start of day for consistency
-      existingVariant.expiryDate = expiryDateObj;
-      // Update minThreshold if provided (keep existing if not provided)
-      if (minThreshold != null) {
-        existingVariant.minThreshold = Number(minThreshold) || 0;
+    if (variant) {
+      // UPDATE EXISTING VARIANT
+      if (!Number.isNaN(parsedQuantity) && parsedQuantity > 0) {
+        variant.quantity += parsedQuantity;
       }
-      await existingVariant.save();
-      variant = existingVariant;
+
+      // Optionally update prices if provided and valid
+      if (!Number.isNaN(parsedPurchase) && parsedPurchase >= 0) {
+        variant.purchasePrice = parsedPurchase;
+      }
+      if (!Number.isNaN(parsedMrp) && parsedMrp >= 0) {
+        variant.mrp = parsedMrp;
+      }
+      if (!Number.isNaN(parsedSelling) && parsedSelling >= 0) {
+        variant.sellingPrice = parsedSelling;
+      }
+
+      // Update minThreshold if provided
+      if (minThreshold != null) {
+        variant.minThreshold = Number(minThreshold) || 0;
+      }
+
+      // Ensure expiry date consistency
+      variant.expiryDate = expiryDateObj;
+
+      // Validate pricing constraint
+      if (variant.sellingPrice > variant.mrp) {
+        return res.status(400).json({
+          detail: `Selling price (${variant.sellingPrice}) cannot be greater than MRP (${variant.mrp})`,
+        });
+      }
+
+      await variant.save();
       wasUpdated = true;
     } else {
-      // Create new variant
+      // CREATE NEW VARIANT
+      // Stricter validation for new creation
+      if (!brandName || !dosage || !form || !packing) {
+        return res.status(400).json({
+          detail: "brandName, dosage, form, packing are required for new stock",
+        });
+      }
+
+      if (
+        Number.isNaN(parsedPurchase) ||
+        Number.isNaN(parsedMrp) ||
+        Number.isNaN(parsedSelling) ||
+        Number.isNaN(parsedQuantity) ||
+        parsedPurchase < 0 ||
+        parsedMrp < 0 ||
+        parsedSelling < 0 ||
+        parsedQuantity < 0
+      ) {
+        return res.status(400).json({
+          detail: "purchasePrice, mrp, sellingPrice, and quantity must be numbers >= 0",
+        });
+      }
+
+      if (parsedSelling > parsedMrp) {
+        return res.status(400).json({
+          detail: `Selling price (${parsedSelling}) cannot be greater than MRP (${parsedMrp})`,
+        });
+      }
+
       variant = await MedicineVariant.create({
         medicine: medicine._id,
         brandName: brandName.trim(),
