@@ -48,3 +48,44 @@ The billing module allows the owner to create invoices for customers, automatica
 
 
 *This documentation reflects the system state as of the latest analysis.*
+
+---
+
+## 🛠️ Git Workflow (Clone, Pull, Push)
+
+Here are the basic commands to manage the project using Git:
+
+### 1. Clone the Project
+To download the project to your local machine for the first time:
+```bash
+git clone <repository-url>
+cd medical-billing-app
+```
+
+### 2. Pull Latest Changes
+To update your local code with the latest changes from the remote repository:
+```bash
+git pull origin main
+```
+*(Note: If the main branch is named `master`, use `git pull origin master`)*
+
+### 3. Push Your Changes
+To save your changes and upload them to the repository:
+
+1.  **Check Status** (See what files changed):
+    ```bash
+    git status
+    ```
+2.  **Add Changes** (Stage files for commit):
+    ```bash
+    git add .
+    ```
+3.  **Commit Changes** (Save with a message):
+    ```bash
+    git commit -m "Description of what you changed"
+    ```
+4.  **Push** (Upload to remote):
+    ```bash
+    git push origin main
+    ```
+
