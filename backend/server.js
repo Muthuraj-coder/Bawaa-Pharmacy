@@ -10,6 +10,7 @@ const medicineRoutes = require("./routes/medicineRoutes");
 const medicineMasterRoutes = require("./routes/medicineMasterRoutes");
 const invoiceRoutes = require("./routes/invoiceRoutes");
 const statsRoutes = require("./routes/statsRoutes");
+const importRoutes = require("./routes/importRoutes");
 
 const app = express();
 
@@ -47,6 +48,9 @@ app.use("/api/invoices", invoiceRoutes);
 
 // Dashboard stats
 app.use("/api/stats", statsRoutes);
+
+// PDF to Excel import routes (isolated from billing/stock modules)
+app.use("/api/import", importRoutes);
 
 // Global error handler fallback (keeps responses JSON)
 // eslint-disable-next-line no-unused-vars

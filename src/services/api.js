@@ -352,3 +352,5 @@ export async function createInvoice(payload) {
   }
 }
 
+export { BASE_URL };
+

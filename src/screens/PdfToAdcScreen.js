@@ -1,15 +1,81 @@
-import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  StatusBar,
-} from "react-native";
+import * as DocumentPicker from "expo-document-picker";
 import { LinearGradient } from "expo-linear-gradient";
+import { useState } from "react";
+import { ActivityIndicator, Alert, StatusBar, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Colors from "../constants/styles";
+import { BASE_URL } from "../services/api";
 
 const PdfToAdcScreen = ({ navigation }) => {
+  const [uploading, setUploading] = useState(false);
+
+  const handleSelectPdf = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "application/pdf",
+        multiple: false,
+        copyToCacheDirectory: true,
+      });
+
+      if (result.canceled) {
+        return;
+      }
+
+      const asset = result.assets && result.assets[0];
+      if (!asset) {
+        Alert.alert("Error", "No file selected");
+        return;
+      }
+
+      setUploading(true);
+
+      const formData = new FormData();
+      formData.append("file", {
+        uri: asset.uri,
+        name: asset.name || "invoice.pdf",
+        type: asset.mimeType || "application/pdf",
+      });
+
+      const response = await fetch(`${BASE_URL}/api/import/parse-pdf`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        let message = "Failed to parse PDF";
+        try {
+          const parsed = JSON.parse(text);
+          if (parsed && parsed.detail) {
+            message = parsed.detail;
+          }
+        } catch (e) {
+          if (text) message = text;
+        }
+        throw new Error(message);
+      }
+
+      const responseData = await response.json();
+      console.log("Parsed items:", responseData.items);
+
+      if (!responseData.items || responseData.items.length === 0) {
+        Alert.alert("Notice", "No items found in PDF to convert.");
+        return;
+      }
+
+      // Navigate to the preview screen
+      navigation.navigate("PdfPreview", { items: responseData.items });
+
+    } catch (err) {
+      console.error("PDF to ADC error:", err);
+      Alert.alert(
+        "Error",
+        err.message || "Failed to process PDF. Please try again."
+      );
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
     <LinearGradient
       colors={[Colors.primary, Colors.secondary]}
@@ -46,17 +112,17 @@ const PdfToAdcScreen = ({ navigation }) => {
         <TouchableOpacity
           style={styles.uploadButton}
           activeOpacity={0.85}
+          onPress={uploading ? undefined : handleSelectPdf}
         >
-          <Text style={styles.uploadButtonText}>
-            Select PDF
-          </Text>
+          {uploading ? (
+            <ActivityIndicator color={Colors.primary} />
+          ) : (
+            <Text style={styles.uploadButtonText}>
+              Select PDF
+            </Text>
+          )}
         </TouchableOpacity>
       </View>
-
-      {/* Footer Note */}
-      <Text style={styles.footerText}>
-        * Feature will be enabled in next phase
-      </Text>
     </LinearGradient>
   );
 };

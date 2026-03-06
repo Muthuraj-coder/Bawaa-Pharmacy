@@ -1,4 +1,3 @@
-import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
@@ -7,12 +6,13 @@ import LoginScreen from "./src/screens/LoginScreen";
 import SignupScreen from "./src/screens/SignupScreen";
 
 // Main App Screens
-import HomeScreen from "./src/screens/HomeScreen";
-import MedicineScreen from "./src/screens/MedicineScreen";
 import AddMedicineScreen from "./src/screens/AddMedicineScreen";
 import BillingScreen from "./src/screens/BillingScreen";
-import InvoiceScreen from "./src/screens/InvoiceScreen";
+import HomeScreen from "./src/screens/HomeScreen";
 import InvoiceHistoryScreen from "./src/screens/InvoiceHistoryScreen";
+import InvoiceScreen from "./src/screens/InvoiceScreen";
+import MedicineScreen from "./src/screens/MedicineScreen";
+import PdfPreviewScreen from "./src/screens/PdfPreviewScreen";
 import PdfToAdcScreen from "./src/screens/PdfToAdcScreen";
 
 const Stack = createNativeStackNavigator();
@@ -47,6 +47,7 @@ export default function App() {
 
         {/* 📄 PDF → ADC Feature */}
         <Stack.Screen name="PdfToAdc" component={PdfToAdcScreen} />
+        <Stack.Screen name="PdfPreview" component={PdfPreviewScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

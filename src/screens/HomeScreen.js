@@ -3,6 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
+  ScrollView,
   TouchableOpacity,
   StatusBar,
   ActivityIndicator,
@@ -40,97 +41,95 @@ const HomeScreen = ({ navigation }) => {
     >
       <StatusBar barStyle="light-content" />
 
-      {/* Top Stats Bar */}
-      <View style={styles.statsBar}>
-        {loading ? (
-          <View style={styles.statsLoading}>
-            <ActivityIndicator size="small" color={Colors.textPrimary} />
-            <Text style={styles.statsLoadingText}>Loading…</Text>
-          </View>
-        ) : (
-          <>
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>{stats.totalMedicines}</Text>
-              <Text style={styles.statLabel}>Total Medicines</Text>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Top Stats Bar */}
+        <View style={styles.statsBar}>
+          {loading ? (
+            <View style={styles.statsLoading}>
+              <ActivityIndicator size="small" color={Colors.textPrimary} />
+              <Text style={styles.statsLoadingText}>Loading…</Text>
             </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>{stats.invoicesToday}</Text>
-              <Text style={styles.statLabel}>Invoices Today</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statCard}>
-              <Text style={[styles.statValue, stats.lowStockCount > 0 && styles.statValueWarning]}>
-                {stats.lowStockCount}
-              </Text>
-              <Text style={styles.statLabel}>Low Stock</Text>
-            </View>
-          </>
-        )}
-      </View>
+          ) : (
+            <>
+              <View style={styles.statCard}>
+                <Text style={styles.statValue}>{stats.totalMedicines}</Text>
+                <Text style={styles.statLabel}>Total Medicines</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statCard}>
+                <Text style={styles.statValue}>{stats.invoicesToday}</Text>
+                <Text style={styles.statLabel}>Invoices Today</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statCard}>
+                <Text
+                  style={[
+                    styles.statValue,
+                    stats.lowStockCount > 0 && styles.statValueWarning,
+                  ]}
+                >
+                  {stats.lowStockCount}
+                </Text>
+                <Text style={styles.statLabel}>Low Stock</Text>
+              </View>
+            </>
+          )}
+        </View>
 
-      {/* Brand Section */}
-      <View style={styles.brandSection}>
-        <Text style={styles.brandTitle}>Bawaa Pharmacy</Text>
-        <Text style={styles.brandSubtitle}>
-          Medical Billing & Inventory
-        </Text>
-      </View>
+        {/* Brand Section */}
+        <View style={styles.brandSection}>
+          <Text style={styles.brandTitle}>Bawaa Pharmacy</Text>
+          <Text style={styles.brandSubtitle}>Medical Billing & Inventory</Text>
+        </View>
 
-      {/* Main Actions */}
-      <View style={styles.actionsContainer}>
-        <TouchableOpacity
-          style={styles.mainCard}
-          activeOpacity={0.85}
-          onPress={() => navigation.navigate("Medicines")}
-        >
-          <Text style={styles.cardIcon}>💊</Text>
-          <Text style={styles.cardTitle}>Medicine Inventory</Text>
-          <Text style={styles.cardDesc}>
-            Monitor stock levels and pricing
-          </Text>
-        </TouchableOpacity>
+        {/* Main Actions */}
+        <View style={styles.actionsContainer}>
+          <TouchableOpacity
+            style={styles.mainCard}
+            activeOpacity={0.85}
+            onPress={() => navigation.navigate("Medicines")}
+          >
+            <Text style={styles.cardIcon}>💊</Text>
+            <Text style={styles.cardTitle}>Medicine Inventory</Text>
+            <Text style={styles.cardDesc}>Monitor stock levels and pricing</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.mainCard}
-          activeOpacity={0.85}
-          onPress={() => navigation.navigate("Billing")}
-        >
-          <Text style={styles.cardIcon}>🧾</Text>
-          <Text style={styles.cardTitle}>Create Invoice</Text>
-          <Text style={styles.cardDesc}>
-            GST billing with instant preview
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.mainCard}
+            activeOpacity={0.85}
+            onPress={() => navigation.navigate("Billing")}
+          >
+            <Text style={styles.cardIcon}>🧾</Text>
+            <Text style={styles.cardTitle}>Create Invoice</Text>
+            <Text style={styles.cardDesc}>GST billing with instant preview</Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.mainCard}
-          activeOpacity={0.85}
-          onPress={() => navigation.navigate("InvoiceHistory")}
-        >
-          <Text style={styles.cardIcon}>📋</Text>
-          <Text style={styles.cardTitle}>Invoice History</Text>
-          <Text style={styles.cardDesc}>
-            View and reprint past invoices
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.mainCard}
+            activeOpacity={0.85}
+            onPress={() => navigation.navigate("InvoiceHistory")}
+          >
+            <Text style={styles.cardIcon}>📋</Text>
+            <Text style={styles.cardTitle}>Invoice History</Text>
+            <Text style={styles.cardDesc}>View and reprint past invoices</Text>
+          </TouchableOpacity>
 
-        {/* ADC Feature Button */}
-        <TouchableOpacity
-          style={styles.adcButton}
-          activeOpacity={0.85}
-          onPress={() => navigation.navigate("PdfToAdc")}
-        >
-          <Text style={styles.adcButtonText}>
-            Generate ADC Sheet from PDF
-          </Text>
-        </TouchableOpacity>
-      </View>
+          {/* ADC Feature Button */}
+          <TouchableOpacity
+            style={styles.adcButton}
+            activeOpacity={0.85}
+            onPress={() => navigation.navigate("PdfToAdc")}
+          >
+            <Text style={styles.adcButtonText}>Generate ADC Sheet from PDF</Text>
+          </TouchableOpacity>
+        </View>
 
-      {/* Footer */}
-      <Text style={styles.footerText}>
-        Bawaa Pharmacy • Tirupur
-      </Text>
+        {/* Footer */}
+        <Text style={styles.footerText}>Bawaa Pharmacy • Tirupur</Text>
+      </ScrollView>
     </LinearGradient>
   );
 };
@@ -140,7 +139,11 @@ export default HomeScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+
+  scrollContent: {
     paddingHorizontal: 22,
+    paddingBottom: 120,
   },
 
   /* Stats Bar */
@@ -259,7 +262,6 @@ const styles = StyleSheet.create({
 
   /* Footer */
   footerText: {
-    marginTop: "auto",
     marginBottom: 28,
     textAlign: "center",
     fontSize: 11,
