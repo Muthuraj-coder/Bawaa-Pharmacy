@@ -7,49 +7,39 @@ import {
   TouchableOpacity,
   Alert,
   StatusBar,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-
 import Colors from "../constants/styles";
+import { Spacing, FontSize, FontWeight, Radius, Shadow, SAFE_TOP } from "../constants/theme";
 import { login } from "../services/api";
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert("Error", "Email and password are required");
       return;
     }
-
     setLoading(true);
     try {
       const data = await login({ email, password });
-
       console.log("TOKEN:", data.access_token);
-
       Alert.alert("Success", "Login successful");
       navigation.replace("Home");
     } catch (error) {
       console.log("Login error (raw):", error);
-
-      // Distinguish between network / server reachability problems
-      // and authentication failures (401/403).
-      if (
-        error?.message === "Network request failed" ||
-        error?.name === "TypeError"
-      ) {
-        Alert.alert(
-          "Network Error",
-          "Unable to reach the server. Make sure the backend is running and your device/emulator is on the same network."
-        );
+      if (error?.message === "Network request failed" || error?.name === "TypeError") {
+        Alert.alert("Network Error", "Unable to reach the server. Make sure the backend is running.");
       } else if (error?.status === 401 || error?.status === 403) {
-        Alert.alert(
-          "Authentication Failed",
-          error.message || "Invalid email or password"
-        );
+        Alert.alert("Authentication Failed", error.message || "Invalid email or password");
       } else {
         Alert.alert("Login Failed", error.message || "Unexpected error");
       }
@@ -59,61 +49,107 @@ const LoginScreen = ({ navigation }) => {
   };
 
   return (
-    <LinearGradient
-      colors={[Colors.primary, Colors.secondary]}
-      style={styles.container}
-    >
+    <LinearGradient colors={[Colors.primary, Colors.secondary]} style={styles.container}>
       <StatusBar barStyle="light-content" />
 
-      {/* SKIP BUTTON */}
+      {/* Skip Button */}
       <TouchableOpacity
-        style={styles.skip}
+        style={styles.skipBtn}
         onPress={() => navigation.replace("Home")}
+        id="skip-login-btn"
       >
-        <Text style={styles.skipText}>Skip</Text>
+        <Text style={styles.skipText}>Skip →</Text>
       </TouchableOpacity>
 
-      <Text style={styles.title}>Bawaa Pharmacy</Text>
-      <Text style={styles.subtitle}>
-        Sign in to your account
-      </Text>
-
-      <View style={styles.card}>
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          placeholderTextColor={Colors.textSecondary}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          value={email}
-          onChangeText={setEmail}
-        />
-
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          placeholderTextColor={Colors.textSecondary}
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-        />
-
-        <TouchableOpacity
-          style={styles.button}
-          onPress={handleLogin}
-          disabled={loading}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.buttonText}>
-            {loading ? "Logging in..." : "Login"}
-          </Text>
-        </TouchableOpacity>
-      </View>
+          {/* Logo & Branding */}
+          <View style={styles.brandSection}>
+            <View style={styles.logoWrapper}>
+              <Image
+                source={require("../../assets/images/logo.png")}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+            </View>
+            <Text style={styles.appName}>Bawaa Pharmacy</Text>
+            <Text style={styles.appTagline}>Medical Billing & Inventory Management</Text>
+          </View>
 
-      <TouchableOpacity onPress={() => navigation.navigate("Signup")}>
-        <Text style={styles.link}>
-          Don’t have an account? Sign up
-        </Text>
-      </TouchableOpacity>
+          {/* Login Card */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Sign In</Text>
+            <Text style={styles.cardSubtitle}>Enter your credentials to continue</Text>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Email Address</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="you@example.com"
+                placeholderTextColor={Colors.textSecondary}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                value={email}
+                onChangeText={setEmail}
+                id="email-input"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Password</Text>
+              <View style={styles.passwordWrapper}>
+                <TextInput
+                  style={[styles.input, styles.passwordInput]}
+                  placeholder="••••••••"
+                  placeholderTextColor={Colors.textSecondary}
+                  secureTextEntry={!showPassword}
+                  value={password}
+                  onChangeText={setPassword}
+                  id="password-input"
+                />
+                <TouchableOpacity
+                  style={styles.passwordToggle}
+                  onPress={() => setShowPassword(!showPassword)}
+                  hitSlop={{ top: 8, left: 8, bottom: 8, right: 8 }}
+                >
+                  <Text style={styles.passwordToggleText}>{showPassword ? "🙈" : "👁️"}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.loginBtn, loading && styles.loginBtnDisabled]}
+              onPress={handleLogin}
+              disabled={loading}
+              id="login-btn"
+            >
+              <Text style={styles.loginBtnText}>
+                {loading ? "Signing In…" : "Sign In"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Sign Up Link */}
+          <TouchableOpacity
+            style={styles.signupLink}
+            onPress={() => navigation.navigate("Signup")}
+          >
+            <Text style={styles.signupLinkText}>
+              Don't have an account?{" "}
+              <Text style={styles.signupLinkHighlight}>Create one →</Text>
+            </Text>
+          </TouchableOpacity>
+
+          <Text style={styles.footer}>Bawaa Pharmacy • Tirupur</Text>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </LinearGradient>
   );
 };
@@ -121,78 +157,174 @@ const LoginScreen = ({ navigation }) => {
 export default LoginScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: 24,
-    justifyContent: "center",
-  },
+  container: { flex: 1 },
 
-  skip: {
+  skipBtn: {
     position: "absolute",
-    top: 50,
-    right: 24,
+    top: SAFE_TOP,
+    right: Spacing.lg,
     zIndex: 10,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
   },
 
   skipText: {
     color: Colors.highlight,
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: FontSize.body,
+    fontWeight: FontWeight.semibold,
   },
 
-  title: {
-    fontSize: 30,
-    fontWeight: "800",
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: "center",
+    paddingHorizontal: Spacing.lg,
+    paddingTop: SAFE_TOP + Spacing.xl,
+    paddingBottom: Spacing.xl,
+  },
+
+  brandSection: {
+    alignItems: "center",
+    marginBottom: Spacing.xl,
+  },
+
+  logoWrapper: {
+    width: 84,
+    height: 84,
+    borderRadius: Radius.lg,
+    overflow: "hidden",
+    marginBottom: Spacing.base,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    ...Shadow.md,
+  },
+
+  logo: {
+    width: 84,
+    height: 84,
+  },
+
+  appName: {
+    fontSize: 28,
+    fontWeight: FontWeight.black,
     color: Colors.textPrimary,
-    textAlign: "center",
+    letterSpacing: 0.5,
+    marginBottom: Spacing.xs,
   },
 
-  subtitle: {
-    fontSize: 14,
+  appTagline: {
+    fontSize: FontSize.sm,
     color: Colors.textSecondary,
     textAlign: "center",
-    marginBottom: 30,
+    maxWidth: 240,
+    lineHeight: 18,
   },
 
   card: {
     backgroundColor: Colors.cardBackground,
-    borderRadius: 20,
-    padding: 20,
+    borderRadius: Radius.xl,
+    padding: Spacing.lg,
     borderWidth: 1,
     borderColor: Colors.border,
+    marginBottom: Spacing.base,
+    ...Shadow.md,
+  },
+
+  cardTitle: {
+    fontSize: FontSize.titleLg,
+    fontWeight: FontWeight.heavy,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.xs,
+  },
+
+  cardSubtitle: {
+    fontSize: FontSize.sm,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.lg,
+  },
+
+  inputGroup: {
+    marginBottom: Spacing.md,
+  },
+
+  inputLabel: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    fontWeight: FontWeight.medium,
+    marginBottom: Spacing.xs,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
   },
 
   input: {
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+    backgroundColor: "rgba(255,255,255,0.07)",
+    borderRadius: Radius.sm,
+    paddingVertical: Spacing.sm + 2,
+    paddingHorizontal: Spacing.md,
     color: Colors.textPrimary,
     borderWidth: 1,
     borderColor: Colors.border,
-    marginBottom: 14,
+    fontSize: FontSize.body,
+    minHeight: 48,
   },
 
-  button: {
-    backgroundColor: Colors.textPrimary,
-    paddingVertical: 16,
-    borderRadius: 16,
-    marginTop: 10,
+  passwordWrapper: {
+    position: "relative",
   },
 
-  buttonText: {
-    color: Colors.primary,
-    fontWeight: "700",
-    fontSize: 16,
-    textAlign: "center",
+  passwordInput: {
+    paddingRight: 50,
   },
 
-  link: {
+  passwordToggle: {
+    position: "absolute",
+    right: Spacing.md,
+    top: 0,
+    bottom: 0,
+    justifyContent: "center",
+  },
+
+  passwordToggleText: {
+    fontSize: 17,
+  },
+
+  loginBtn: {
+    backgroundColor: Colors.highlight,
+    paddingVertical: Spacing.md,
+    borderRadius: Radius.md,
+    alignItems: "center",
+    marginTop: Spacing.sm,
+    ...Shadow.sm,
+  },
+
+  loginBtnDisabled: { opacity: 0.7 },
+
+  loginBtnText: {
+    color: "#0F172A",
+    fontWeight: FontWeight.bold,
+    fontSize: FontSize.bodyLg,
+    letterSpacing: 0.5,
+  },
+
+  signupLink: {
+    alignItems: "center",
+    paddingVertical: Spacing.sm,
+  },
+
+  signupLinkText: {
+    color: Colors.textSecondary,
+    fontSize: FontSize.body,
+  },
+
+  signupLinkHighlight: {
     color: Colors.highlight,
+    fontWeight: FontWeight.semibold,
+  },
+
+  footer: {
     textAlign: "center",
-    marginTop: 20,
-    fontSize: 14,
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    marginTop: Spacing.lg,
+    letterSpacing: 0.5,
   },
 });
-
-

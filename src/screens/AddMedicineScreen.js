@@ -11,8 +11,11 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Image,
+  Alert,
 } from "react-native";
 import Colors from "../constants/styles";
+import { Spacing, FontSize, FontWeight, Radius, Shadow, SAFE_TOP } from "../constants/theme";
 import { createMedicineStock, searchMedicineMaster } from "../services/api";
 
 const AddMedicineScreen = ({ navigation }) => {
@@ -24,7 +27,7 @@ const AddMedicineScreen = ({ navigation }) => {
   const [hsnCode, setHsnCode] = useState("3004");
   const [gstRate, setGstRate] = useState("5");
   const [batchNumber, setBatchNumber] = useState("");
-  const [expiryDate, setExpiryDate] = useState(null); // JS Date
+  const [expiryDate, setExpiryDate] = useState(null);
   const [showExpiryPicker, setShowExpiryPicker] = useState(false);
   const [purchasePrice, setPurchasePrice] = useState("");
   const [mrp, setMrp] = useState("");
@@ -32,7 +35,6 @@ const AddMedicineScreen = ({ navigation }) => {
   const [quantity, setQuantity] = useState("");
   const [minThreshold, setMinThreshold] = useState("10");
 
-  // Medicine master search state
   const [searchText, setSearchText] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -41,14 +43,7 @@ const AddMedicineScreen = ({ navigation }) => {
 
   useEffect(() => {
     const q = searchText.trim();
-
-    // If user clears search, allow editing again
-    if (!q) {
-      setSearchResults([]);
-      setSelectedMasterId(null);
-      return;
-    }
-
+    if (!q) { setSearchResults([]); setSelectedMasterId(null); return; }
     const timer = setTimeout(async () => {
       setSearching(true);
       try {
@@ -60,24 +55,16 @@ const AddMedicineScreen = ({ navigation }) => {
         setSearching(false);
       }
     }, 250);
-
     return () => clearTimeout(timer);
   }, [searchText]);
 
   const onAddStock = async () => {
     if (
-      !brandName.trim() ||
-      !dosage.trim() ||
-      !form.trim() ||
-      !packing.trim() ||
-      !hsnCode.trim() ||
-      !batchNumber.trim() ||
-      !expiryDate ||
-      !purchasePrice.trim() ||
-      !mrp.trim() ||
-      !sellingPrice.trim() ||
-      !quantity.trim()
+      !brandName.trim() || !dosage.trim() || !form.trim() || !packing.trim() ||
+      !hsnCode.trim() || !batchNumber.trim() || !expiryDate ||
+      !purchasePrice.trim() || !mrp.trim() || !sellingPrice.trim() || !quantity.trim()
     ) {
+      Alert.alert("Missing Fields", "Please fill in all required fields before saving.");
       return;
     }
 
@@ -87,28 +74,22 @@ const AddMedicineScreen = ({ navigation }) => {
     const parsedQuantity = Number(quantity);
 
     if (
-      Number.isNaN(parsedPurchase) ||
-      Number.isNaN(parsedMrp) ||
-      Number.isNaN(parsedSelling) ||
-      Number.isNaN(parsedQuantity) ||
-      parsedPurchase < 0 ||
-      parsedMrp < 0 ||
-      parsedSelling < 0 ||
-      parsedQuantity <= 0
+      Number.isNaN(parsedPurchase) || Number.isNaN(parsedMrp) ||
+      Number.isNaN(parsedSelling) || Number.isNaN(parsedQuantity) ||
+      parsedPurchase < 0 || parsedMrp < 0 || parsedSelling < 0 || parsedQuantity <= 0
     ) {
-      alert("Please enter valid positive numbers for prices and quantity");
+      Alert.alert("Invalid Values", "Please enter valid positive numbers for prices and quantity.");
       return;
     }
 
     if (parsedSelling > parsedMrp) {
-      alert(`Selling Price (${parsedSelling}) cannot determine MRP (${parsedMrp})`);
+      Alert.alert("Price Error", `Selling Price (${parsedSelling}) cannot exceed MRP (${parsedMrp}).`);
       return;
     }
 
     setSubmitting(true);
     try {
       await createMedicineStock({
-        // For now we use the selected brandName as the generic name.
         name: brandName.trim(),
         category: category.trim() || undefined,
         hsnCode: hsnCode.trim(),
@@ -125,11 +106,10 @@ const AddMedicineScreen = ({ navigation }) => {
         quantity: parsedQuantity,
         minThreshold: Number(minThreshold) || 0,
       });
-
-      // After successful save, go back to inventory screen.
       navigation.goBack();
     } catch (err) {
       console.log("Failed to add medicine stock:", err);
+      Alert.alert("Error", err.message || "Failed to save stock. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -139,20 +119,14 @@ const AddMedicineScreen = ({ navigation }) => {
     setSelectedMasterId(item._id);
     setSearchText(item.brandName);
     setSearchResults([]);
-
     setBrandName(item.brandName || "");
     setDosage(item.dosage || "");
     setForm(item.form || "Tablet");
     setPacking(item.packing || "Strip");
-    // If master has HSN/GST, auto-fill them. For now, we keep defaults or manual entry if not in master.
-    // In future, if master returns HSN/GST, set them here.
   };
 
   return (
-    <LinearGradient
-      colors={[Colors.primary, Colors.secondary]}
-      style={styles.container}
-    >
+    <LinearGradient colors={[Colors.primary, Colors.secondary]} style={styles.container}>
       <StatusBar barStyle="light-content" />
 
       <KeyboardAvoidingView
@@ -161,31 +135,61 @@ const AddMedicineScreen = ({ navigation }) => {
         keyboardVerticalOffset={Platform.OS === "ios" ? 80 : 0}
       >
         <ScrollView
-          contentContainerStyle={{ paddingHorizontal: 22, paddingBottom: 32 }}
+          contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>Add Medicine Stock</Text>
-            <Text style={styles.subtitle}>
-              Bawaa Pharmacy • Auto-fill from master, enter stock details
-            </Text>
+            <TouchableOpacity
+              style={styles.backBtn}
+              onPress={() => navigation.goBack()}
+              hitSlop={{ top: 10, left: 10, bottom: 10, right: 10 }}
+            >
+              <Text style={styles.backBtnText}>← Back</Text>
+            </TouchableOpacity>
+            <View style={styles.headerCenter}>
+              <Image
+                source={require("../../assets/images/logo.png")}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+              <View>
+                <Text style={styles.title}>Add Medicine Stock</Text>
+                <Text style={styles.subtitle}>Auto-fill from master or enter manually</Text>
+              </View>
+            </View>
           </View>
 
-          <View style={styles.addBox}>
-            {/* Section 1: Medicine Details */}
-            <Text style={styles.sectionTitle}>Medicine Details</Text>
-            <Text style={styles.sectionSubtitle}>
-              Search from master list or enter manually
-            </Text>
+          {/* Section 1: Medicine Search & Details */}
+          <View style={styles.card}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionIcon}>💊</Text>
+              <View>
+                <Text style={styles.sectionTitle}>Medicine Details</Text>
+                <Text style={styles.sectionSubtitle}>Search from master or enter manually</Text>
+              </View>
+            </View>
 
-            <TextInput
-              style={styles.input}
-              placeholder="Search medicine by brand name"
-              placeholderTextColor={Colors.textSecondary}
-              value={searchText}
-              onChangeText={setSearchText}
-            />
+            {/* Master Search */}
+            <View style={styles.searchWrapper}>
+              <Text style={styles.searchIconText}>🔍</Text>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search medicine by brand name..."
+                placeholderTextColor={Colors.textSecondary}
+                value={searchText}
+                onChangeText={setSearchText}
+              />
+              {selectedMasterId && (
+                <TouchableOpacity
+                  onPress={() => { setSelectedMasterId(null); setSearchText(""); }}
+                  hitSlop={{ top: 8, left: 8, bottom: 8, right: 8 }}
+                >
+                  <Text style={styles.clearBtn}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
 
             {searchText.trim().length > 0 && searchResults.length > 0 && (
               <View style={styles.dropdown}>
@@ -196,19 +200,25 @@ const AddMedicineScreen = ({ navigation }) => {
                     onPress={() => onSelectMaster(item)}
                   >
                     <Text style={styles.dropdownText}>
-                      {item.brandName} {item.dosage} {item.form}{" "}
-                      {item.packing}
+                      {item.brandName} {item.dosage} {item.form} {item.packing}
                     </Text>
                   </TouchableOpacity>
                 ))}
               </View>
             )}
 
-            <View style={styles.row}>
-              <View style={styles.half}>
-                <Text style={styles.fieldLabel}>Brand Name</Text>
+            {selectedMasterId && (
+              <View style={styles.masterSelectedBadge}>
+                <Text style={styles.masterSelectedText}>✓ Auto-filled from master. Fields locked.</Text>
+              </View>
+            )}
+
+            {/* Brand & Dosage */}
+            <View style={styles.fieldRow}>
+              <View style={styles.halfField}>
+                <Text style={styles.fieldLabel}>Brand Name *</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, selectedMasterId && styles.inputLocked]}
                   placeholder="Brand Name"
                   placeholderTextColor={Colors.textSecondary}
                   value={brandName}
@@ -216,11 +226,10 @@ const AddMedicineScreen = ({ navigation }) => {
                   editable={!selectedMasterId}
                 />
               </View>
-
-              <View style={styles.half}>
-                <Text style={styles.fieldLabel}>Dosage</Text>
+              <View style={styles.halfField}>
+                <Text style={styles.fieldLabel}>Dosage *</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, selectedMasterId && styles.inputLocked]}
                   placeholder="e.g. 500mg"
                   placeholderTextColor={Colors.textSecondary}
                   value={dosage}
@@ -230,11 +239,12 @@ const AddMedicineScreen = ({ navigation }) => {
               </View>
             </View>
 
-            <View style={styles.row}>
-              <View style={styles.half}>
-                <Text style={styles.fieldLabel}>Form</Text>
+            {/* Form & Packing */}
+            <View style={styles.fieldRow}>
+              <View style={styles.halfField}>
+                <Text style={styles.fieldLabel}>Form *</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, selectedMasterId && styles.inputLocked]}
                   placeholder="Tablet / Capsule"
                   placeholderTextColor={Colors.textSecondary}
                   value={form}
@@ -242,12 +252,11 @@ const AddMedicineScreen = ({ navigation }) => {
                   editable={!selectedMasterId}
                 />
               </View>
-
-              <View style={styles.half}>
-                <Text style={styles.fieldLabel}>Packing</Text>
+              <View style={styles.halfField}>
+                <Text style={styles.fieldLabel}>Packing *</Text>
                 <TextInput
-                  style={styles.input}
-                  placeholder="e.g. 15's / Strip"
+                  style={[styles.input, selectedMasterId && styles.inputLocked]}
+                  placeholder="e.g. Strip / 15's"
                   placeholderTextColor={Colors.textSecondary}
                   value={packing}
                   onChangeText={setPacking}
@@ -256,38 +265,30 @@ const AddMedicineScreen = ({ navigation }) => {
               </View>
             </View>
 
-            <View style={styles.row}>
-              <View style={styles.half}>
+            {/* HSN & GST */}
+            <View style={styles.fieldRow}>
+              <View style={styles.halfField}>
                 <Text style={styles.fieldLabel}>HSN Code</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, selectedMasterId && styles.inputLocked]}
                   placeholder="3004"
                   placeholderTextColor={Colors.textSecondary}
                   value={hsnCode}
                   onChangeText={setHsnCode}
-                  editable={!selectedMasterId} // Assuming HSN is tied to medicine master
+                  editable={!selectedMasterId}
                 />
               </View>
-
-              <View style={styles.half}>
+              <View style={styles.halfField}>
                 <Text style={styles.fieldLabel}>GST Rate (%)</Text>
                 <View style={styles.gstRow}>
                   {[0, 5, 12, 18].map((rate) => (
                     <TouchableOpacity
                       key={rate}
-                      style={[
-                        styles.gstButton,
-                        gstRate == rate && styles.gstButtonSelected,
-                      ]}
+                      style={[styles.gstBtn, gstRate == rate && styles.gstBtnActive]}
                       onPress={() => !selectedMasterId && setGstRate(String(rate))}
                       disabled={!!selectedMasterId}
                     >
-                      <Text
-                        style={[
-                          styles.gstButtonText,
-                          gstRate == rate && styles.gstButtonTextSelected,
-                        ]}
-                      >
+                      <Text style={[styles.gstBtnText, gstRate == rate && styles.gstBtnTextActive]}>
                         {rate}%
                       </Text>
                     </TouchableOpacity>
@@ -296,13 +297,31 @@ const AddMedicineScreen = ({ navigation }) => {
               </View>
             </View>
 
-            {/* Section 2: Stock Details */}
-            <View style={styles.sectionDivider} />
-            <Text style={styles.sectionTitle}>Stock Details</Text>
+            {/* Category (optional) */}
+            <Text style={styles.fieldLabel}>Category (optional)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="e.g. Antibiotic, Vitamin..."
+              placeholderTextColor={Colors.textSecondary}
+              value={category}
+              onChangeText={setCategory}
+            />
+          </View>
 
-            <View style={styles.row}>
-              <View style={styles.half}>
-                <Text style={styles.fieldLabel}>Batch No.</Text>
+          {/* Section 2: Stock Details */}
+          <View style={styles.card}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionIcon}>📦</Text>
+              <View>
+                <Text style={styles.sectionTitle}>Stock Details</Text>
+                <Text style={styles.sectionSubtitle}>Batch, pricing & inventory info</Text>
+              </View>
+            </View>
+
+            {/* Batch & Expiry */}
+            <View style={styles.fieldRow}>
+              <View style={styles.halfField}>
+                <Text style={styles.fieldLabel}>Batch No. *</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="Batch number"
@@ -311,28 +330,17 @@ const AddMedicineScreen = ({ navigation }) => {
                   onChangeText={setBatchNumber}
                 />
               </View>
-
-              <View style={styles.half}>
-                <Text style={styles.fieldLabel}>Expiry Date</Text>
+              <View style={styles.halfField}>
+                <Text style={styles.fieldLabel}>Expiry Date *</Text>
                 <TouchableOpacity
                   style={styles.input}
                   activeOpacity={0.8}
                   onPress={() => setShowExpiryPicker(true)}
                 >
-                  <Text
-                    style={{
-                      color: expiryDate
-                        ? Colors.textPrimary
-                        : Colors.textSecondary,
-                      fontSize: 14,
-                    }}
-                  >
-                    {expiryDate
-                      ? expiryDate.toISOString().slice(0, 10)
-                      : "Select date"}
+                  <Text style={{ color: expiryDate ? Colors.textPrimary : Colors.textSecondary, fontSize: FontSize.body, lineHeight: 24 }}>
+                    {expiryDate ? expiryDate.toISOString().slice(0, 10) : "Select date"}
                   </Text>
                 </TouchableOpacity>
-
                 {showExpiryPicker && (
                   <DateTimePicker
                     value={expiryDate || new Date()}
@@ -340,33 +348,28 @@ const AddMedicineScreen = ({ navigation }) => {
                     display="default"
                     onChange={(_, selectedDate) => {
                       setShowExpiryPicker(false);
-                      if (selectedDate) {
-                        setExpiryDate(selectedDate);
-                      }
+                      if (selectedDate) setExpiryDate(selectedDate);
                     }}
                   />
                 )}
               </View>
             </View>
 
-            <View style={styles.row}>
-              <View style={styles.half}>
-                <Text style={styles.fieldLabel}>MRP (Inc. GST)</Text>
+            {/* MRP & Purchase Price */}
+            <View style={styles.fieldRow}>
+              <View style={styles.halfField}>
+                <Text style={styles.fieldLabel}>MRP (Inc. GST) *</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="0.00"
                   placeholderTextColor={Colors.textSecondary}
                   keyboardType="numeric"
                   value={mrp}
-                  onChangeText={(val) => {
-                    setMrp(val);
-                    if (!sellingPrice) setSellingPrice(val); // Auto-fill SP with MRP initially
-                  }}
+                  onChangeText={(val) => { setMrp(val); if (!sellingPrice) setSellingPrice(val); }}
                 />
               </View>
-
-              <View style={styles.half}>
-                <Text style={styles.fieldLabel}>Purchase Rate (Ex. GST)</Text>
+              <View style={styles.halfField}>
+                <Text style={styles.fieldLabel}>Purchase Rate *</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="0.00"
@@ -378,9 +381,10 @@ const AddMedicineScreen = ({ navigation }) => {
               </View>
             </View>
 
-            <View style={styles.row}>
-              <View style={styles.half}>
-                <Text style={styles.fieldLabel}>Selling Price</Text>
+            {/* Selling Price */}
+            <View style={styles.fieldRow}>
+              <View style={styles.halfField}>
+                <Text style={styles.fieldLabel}>Selling Price *</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="0.00"
@@ -392,9 +396,10 @@ const AddMedicineScreen = ({ navigation }) => {
               </View>
             </View>
 
-            <View style={styles.row}>
-              <View style={styles.half}>
-                <Text style={styles.fieldLabel}>Quantity</Text>
+            {/* Quantity & Min Threshold */}
+            <View style={styles.fieldRow}>
+              <View style={styles.halfField}>
+                <Text style={styles.fieldLabel}>Quantity *</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="Total units"
@@ -404,9 +409,8 @@ const AddMedicineScreen = ({ navigation }) => {
                   onChangeText={setQuantity}
                 />
               </View>
-
-              <View style={styles.half}>
-                <Text style={styles.fieldLabel}>Alert at (Min)</Text>
+              <View style={styles.halfField}>
+                <Text style={styles.fieldLabel}>Low Stock Alert (Min)</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="e.g. 10"
@@ -417,161 +421,269 @@ const AddMedicineScreen = ({ navigation }) => {
                 />
               </View>
             </View>
-
           </View>
 
+          {/* Save Button */}
           <TouchableOpacity
-            style={styles.addButton}
+            style={[styles.saveBtn, (submitting || searching) && styles.saveBtnDisabled]}
             activeOpacity={0.85}
             onPress={onAddStock}
             disabled={submitting || searching}
+            id="save-stock-btn"
           >
-            <Text style={styles.addButtonText}>
-              {submitting ? "Saving..." : "Save Stock"}
+            <Text style={styles.saveBtnText}>
+              {submitting ? "Saving Stock…" : "💾  Save Medicine Stock"}
             </Text>
           </TouchableOpacity>
+
+          <Text style={styles.requiredNote}>* Required fields</Text>
         </ScrollView>
       </KeyboardAvoidingView>
-    </LinearGradient >
+    </LinearGradient>
   );
 };
 
 export default AddMedicineScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  container: { flex: 1 },
+
+  scrollContent: {
+    paddingHorizontal: Spacing.base,
+    paddingBottom: Spacing.xl,
   },
 
   header: {
-    marginTop: 60,
-    marginBottom: 20,
+    paddingTop: SAFE_TOP,
+    paddingHorizontal: Spacing.sm,
+    paddingBottom: Spacing.md,
+  },
+
+  backBtn: {
+    alignSelf: "flex-start",
+    marginBottom: Spacing.md,
+    paddingRight: Spacing.base,
+    paddingVertical: Spacing.xs,
+  },
+
+  backBtnText: {
+    color: Colors.highlight,
+    fontSize: FontSize.body,
+    fontWeight: FontWeight.semibold,
+  },
+
+  headerCenter: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+  },
+
+  logo: {
+    width: 42,
+    height: 42,
+    borderRadius: Radius.sm,
   },
 
   title: {
-    fontSize: 26,
-    fontWeight: "800",
+    fontSize: FontSize.titleLg,
+    fontWeight: FontWeight.heavy,
     color: Colors.textPrimary,
   },
 
   subtitle: {
-    fontSize: 13,
+    fontSize: FontSize.subtitle,
     color: Colors.textSecondary,
-    marginTop: 6,
+    marginTop: 2,
   },
 
-  addBox: {
+  card: {
     backgroundColor: Colors.cardBackground,
-    borderRadius: 18,
-    padding: 16,
+    borderRadius: Radius.lg,
+    padding: Spacing.base,
     borderWidth: 1,
     borderColor: Colors.border,
-    marginBottom: 20,
+    marginBottom: Spacing.md,
+  },
+
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+
+  sectionIcon: {
+    fontSize: 20,
+    lineHeight: 24,
   },
 
   sectionTitle: {
-    fontSize: 14,
-    fontWeight: "700",
+    fontSize: FontSize.sectionTitle,
+    fontWeight: FontWeight.bold,
     color: Colors.textPrimary,
-    marginBottom: 4,
   },
 
   sectionSubtitle: {
-    fontSize: 11,
+    fontSize: FontSize.xs,
     color: Colors.textSecondary,
-    marginBottom: 10,
+    marginTop: 2,
   },
 
-  sectionDivider: {
-    height: 1,
-    backgroundColor: Colors.border,
-    marginVertical: 12,
+  searchWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.07)",
+    borderRadius: Radius.sm,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingHorizontal: Spacing.md,
+    marginBottom: Spacing.sm,
+    gap: Spacing.sm,
+    minHeight: 46,
+  },
+
+  searchIconText: { fontSize: 15 },
+
+  searchInput: {
+    flex: 1,
+    color: Colors.textPrimary,
+    fontSize: FontSize.body,
+    paddingVertical: Spacing.sm,
+  },
+
+  clearBtn: {
+    color: Colors.textSecondary,
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.bold,
   },
 
   dropdown: {
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.05)",
+    borderRadius: Radius.sm,
     borderWidth: 1,
     borderColor: Colors.border,
-    marginBottom: 10,
-    maxHeight: 180,
+    marginBottom: Spacing.sm,
+    maxHeight: 200,
+    overflow: "hidden",
   },
 
   dropdownItem: {
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingVertical: Spacing.sm + 2,
+    paddingHorizontal: Spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
 
   dropdownText: {
     color: Colors.textPrimary,
-    fontSize: 13,
+    fontSize: FontSize.body,
   },
 
-  input: {
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    color: Colors.textPrimary,
+  masterSelectedBadge: {
+    backgroundColor: "rgba(34, 197, 94, 0.12)",
+    borderRadius: Radius.sm,
+    padding: Spacing.sm,
+    marginBottom: Spacing.md,
     borderWidth: 1,
-    borderColor: Colors.border,
-    marginBottom: 10,
+    borderColor: "rgba(34, 197, 94, 0.25)",
+  },
+
+  masterSelectedText: {
+    fontSize: FontSize.sm,
+    color: Colors.accent,
+    fontWeight: FontWeight.semibold,
+  },
+
+  fieldRow: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+
+  halfField: {
+    flex: 1,
   },
 
   fieldLabel: {
-    fontSize: 11,
+    fontSize: FontSize.xs,
     color: Colors.textSecondary,
-    marginBottom: 4,
+    marginBottom: Spacing.xs,
+    fontWeight: FontWeight.medium,
+    textTransform: "uppercase",
+    letterSpacing: 0.3,
   },
 
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-
-  half: {
-    width: "48%",
-  },
-
-  addButton: {
-    backgroundColor: Colors.textPrimary,
-    paddingVertical: 14,
-    borderRadius: 14,
-    marginTop: 6,
-  },
-
-  addButtonText: {
-    textAlign: "center",
-    fontWeight: "700",
-    color: Colors.primary,
-  },
-  gstRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  gstButton: {
-    backgroundColor: "rgba(255,255,255,0.05)",
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 8,
+  input: {
+    backgroundColor: "rgba(255,255,255,0.07)",
+    borderRadius: Radius.sm,
+    paddingVertical: Spacing.sm + 2,
+    paddingHorizontal: Spacing.md,
+    color: Colors.textPrimary,
     borderWidth: 1,
     borderColor: Colors.border,
-    minWidth: 35,
+    fontSize: FontSize.body,
+    minHeight: 46,
+    marginBottom: Spacing.xs,
+  },
+
+  inputLocked: {
+    backgroundColor: "rgba(255,255,255,0.03)",
+    opacity: 0.6,
+  },
+
+  gstRow: {
+    flexDirection: "row",
+    gap: Spacing.xs,
+  },
+
+  gstBtn: {
+    flex: 1,
+    paddingVertical: Spacing.sm,
+    borderRadius: Radius.sm,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: "rgba(255,255,255,0.04)",
     alignItems: "center",
   },
-  gstButtonSelected: {
+
+  gstBtnActive: {
     backgroundColor: Colors.highlight,
     borderColor: Colors.highlight,
   },
-  gstButtonText: {
-    fontSize: 11,
+
+  gstBtnText: {
+    fontSize: FontSize.xs,
     color: Colors.textSecondary,
+    fontWeight: FontWeight.semibold,
   },
-  gstButtonTextSelected: {
-    color: "#000",
-    fontWeight: "700",
+
+  gstBtnTextActive: {
+    color: "#0F172A",
+    fontWeight: FontWeight.bold,
+  },
+
+  saveBtn: {
+    backgroundColor: Colors.highlight,
+    paddingVertical: Spacing.md,
+    borderRadius: Radius.lg,
+    alignItems: "center",
+    marginBottom: Spacing.sm,
+    ...Shadow.sm,
+  },
+
+  saveBtnDisabled: { opacity: 0.6 },
+
+  saveBtnText: {
+    color: "#0F172A",
+    fontWeight: FontWeight.bold,
+    fontSize: FontSize.bodyLg,
+    letterSpacing: 0.5,
+  },
+
+  requiredNote: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    textAlign: "center",
+    marginTop: Spacing.xs,
   },
 });
-

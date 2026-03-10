@@ -1,53 +1,67 @@
 # MEDIX – Medical Shop Billing App
 
-A comprehensive, single-owner medical billing system built with **React Native (Expo)** for the frontend and **Node.js + Express + MongoDB** for the backend. This application streamlines inventory management, stock tracking, and generates GST-compliant invoices.
+A comprehensive, single-owner medical billing system built with **React Native (Expo)** for the frontend and **Node.js + Express + MongoDB** for the backend. This application streamlines inventory management, stock tracking, and generates professional invoices.
 
 ## 🚀 Tech Stack
 
 ### Frontend (Mobile App)
 - **Framework**: React Native with Expo (Managed Workflow)
 - **UI Styling**: Custom stylesheets with `LinearGradient` support
-- **Navigation**: React Navigation (Stack)
+- **Navigation**: React Navigation (Native Stack, Bottom Tabs)
 - **API Communication**: `fetch` API with centralized service configuration
-- **PDF Generation**: `expo-print` and `expo-sharing` (for invoices)
+- **Document Management**: `expo-document-picker`, `expo-print`, `expo-sharing` (for invoices and PDFs)
 
 ### Backend (API Server)
 - **Runtime**: Node.js
 - **Framework**: Express.js
 - **Database**: MongoDB (Mongoose ODM)
-- **Authentication**: JWT (JSON Web Tokens)
+- **Authentication**: JWT (JSON Web Tokens) & `bcryptjs`
+- **File Processing**: `multer`, `pdf-parse`, `exceljs`, `xlsx`
 - **Environment Management**: `dotenv`
 
 ---
 
-## 🔄 Project Flow & Features
+## 🔄 Project Flow & Comprehensive Features
 
-### 1. Authentication
-- **Secure Access**: The app is designed for a single owner/admin.
-- **Login Flow**: Users log in using credentials stored in the backend environment variables (`OWNER_EMAIL`, `OWNER_PASSWORD`).
-- **Session Management**: On successful login, a JWT `access_token` is returned and used for subsequent authenticated requests.
+### 1. Authentication (`/api/auth`)
+- **Screens**: `LoginScreen`, `SignupScreen`.
+- **Backend**: Employs industry-standard JWT for generating securely signed `access_token`s.
+- **Access**: Designed for single owner/admin architecture. Once authenticated, user securely navigates to the app's protected core routes.
 
-### 2. Medicine & Inventory Management
-The system uses a two-tiered structure for managing stock:
-- **Medicine (Generic)**: Represents the drug itself (e.g., "Paracetamol", "Amoxicillin").
-- **Medicine Variant (Stock Unit)**: Specific purchasable units linked to a generic medicine.
-  - **Properties**: Brand Name, Dosage (e.g., 500mg), Form (Tablet/Syrup), Packing, Batch Number, Expiry Date, Selling Price, and Quantity.
-  - **Low Stock Alerts**: Each variant checks against a `minThreshold`. When `quantity <= minThreshold` after a sale, a `LowStockNotification` is automatically triggered.
+### 2. Dashboard (`/api/stats`)
+- **Screen**: `HomeScreen`
+- **Functionality**: Offers a quick, real-time snapshot of business health based on database metrics:
+  - Total number of registered medicines `totalMedicines`
+  - Number of invoices created today `invoicesToday`
+  - Count of medicines severely low on stock `lowStockCount`
 
-### 3. Billing & Invoicing (Core Feature)
-The billing module allows the owner to create invoices for customers, automatically calculating taxes and reducing stock.
+### 3. Medicine & Inventory Management (`/api/medicineMaster` & `/api/medicines`)
+The system introduces a robust two-tiered structure for precise stock management:
+- **Screens**: `AddMedicineScreen` (addition), `MedicineScreen` (listing/management).
+- **Medicine Master (Generic)**: Represents the base drug identity (e.g., "Paracetamol").
+- **Medicine Variant (Stock Unit)**: The specific batch loaded by the pharmacist.
+  - Features complete itemization: Brand Name, Dosage (e.g., 500mg), Form (Tablet/Syrup), Packing, Batch Number, Expiry Date, Selling Price, and Quantity.
+- **Low Stock Notification Module (`LowStockNotification`)**:
+  - Implements a safety `minThreshold` property on every Variant.
+  - System checks quantities post-sale and auto-generates a low-stock alert when variants breach the safety threshold.
 
-#### **Flow:**
-1.  **Customer Details**: Optional entry of Customer Name and Doctor Name.
-2.  **Add Items**: Search for medicines by name/brand. Select a specific **Batch** (Variant) to add to the cart.
-3.  **Real-time Preview**: As items are added, the backend calculates subtotal, taxes, and final total immediately.
-4.  **Confirm & Generate**: On confirmation, the invoice is saved to the database, and stock is deducted.
-5.  **PDF Output**: A professional PDF invoice is generated and can be shared or printed.
+### 4. Billing & Invoicing Module (`/api/invoices`)
+The core functionality allowing owners to facilitate sales, deduct stock in real-time, and format beautiful bills.
+- **Screens**: `BillingScreen` (point-of-sale interface), `InvoiceHistoryScreen` (audit logs), `InvoiceScreen` (pdf view).
+- **Billing Mechanics**:
+  - Select Customer Details & Doctor.
+  - Search medicines and pick from specific batch variants (Quantity logic dynamically checked).
+  - Calculates subtotal and final total (Note: Specific GST calculation logic was deliberately removed in favor of streamlined subtotals).
+- **Post-Confirmation**: Logs the sale in the database (`Invoice` Schema) and intelligently deducts variant stock.
+- **PDF Generation**: Generates a polished PDF receipt that can be printed or shared directly from the mobile interface utilizing Expo's sharing intent natively.
 
----
-
-
-*This documentation reflects the system state as of the latest analysis.*
+### 5. Supplier Invoice Processing: PDF → ADC Importer (Newest Engine)
+A powerful internal tool specifically built to handle distributor/vendor supply invoices mapping directly to our inventory ecosystem (`/api/import`).
+- **Screens**: `PdfToAdcScreen` (Uploader), `PdfPreviewScreen` (Verificaton Data Grid).
+- **File Upload (`expo-document-picker` & `multer`)**: User uploads raw PDF supplier invoices directly from the device.
+- **Parsing logic (`/api/import/parse-pdf`)**: Node backend leverages `pdf-parse` to perform OCR/text extraction converting messy supplier pdf strings into structural JSON arrays containing batches, quantities, forms, and pricing.
+- **Data Preview & Editing (Grid)**: Frontend displays this converted array structurally in `PdfPreviewScreen` using `FlatList` layout with inline `TextInput` fields. This provides the user with an intuitive opportunity to manual-scan, correct parsing errors, or fill missing supplier data dynamically before saving.
+- **Excel Export Utility (`/api/import/export-excel`)**: The precisely verified grid-data is packaged back to the server where `exceljs` efficiently transforms it into an `.xlsx` workbook, paving the way for one-click bulk-stock loading (ADC).
 
 ---
 
@@ -56,36 +70,20 @@ The billing module allows the owner to create invoices for customers, automatica
 Here are the basic commands to manage the project using Git:
 
 ### 1. Clone the Project
-To download the project to your local machine for the first time:
 ```bash
 git clone <repository-url>
-cd medical-billing-app
+cd Bawaa-Pharmacy
 ```
 
 ### 2. Pull Latest Changes
-To update your local code with the latest changes from the remote repository:
 ```bash
 git pull origin main
 ```
-*(Note: If the main branch is named `master`, use `git pull origin master`)*
 
-### 3. Push Your Changes
-To save your changes and upload them to the repository:
+### 3. Push Your Changes (Standard WorkFlow)
+1. **Check Status**: `git status`
+2. **Add Changes**: `git add .`
+3. **Commit Changes**: `git commit -m "Description of what you changed"`
+4. **Push**: `git push origin main`
 
-1.  **Check Status** (See what files changed):
-    ```bash
-    git status
-    ```
-2.  **Add Changes** (Stage files for commit):
-    ```bash
-    git add .
-    ```
-3.  **Commit Changes** (Save with a message):
-    ```bash
-    git commit -m "Description of what you changed"
-    ```
-4.  **Push** (Upload to remote):
-    ```bash
-    git push origin main
-    ```
-
+*This documentation reflects every major capability embedded within Bawaa-Pharmacy's system state as of the latest analysis.*

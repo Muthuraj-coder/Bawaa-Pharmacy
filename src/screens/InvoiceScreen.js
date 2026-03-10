@@ -8,12 +8,15 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Image,
+  ScrollView,
 } from "react-native";
 import Colors from "../constants/styles";
+import { Spacing, FontSize, FontWeight, Radius, Shadow, SAFE_TOP } from "../constants/theme";
 import { getInvoice } from "../services/api";
 import { generateAndShareInvoicePdf } from "../utils/invoicePdf";
 
-const InvoiceScreen = ({ route }) => {
+const InvoiceScreen = ({ route, navigation }) => {
   const invoiceId = route?.params?.invoiceId;
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(!!invoiceId);
@@ -21,208 +24,217 @@ const InvoiceScreen = ({ route }) => {
   const [pdfBusy, setPdfBusy] = useState(false);
 
   useEffect(() => {
-    if (!invoiceId) {
-      setInvoice(null);
-      setLoading(false);
-      return;
-    }
+    if (!invoiceId) { setInvoice(null); setLoading(false); return; }
     let cancelled = false;
-    setLoading(true);
-    setError(null);
+    setLoading(true); setError(null);
     getInvoice(invoiceId)
-      .then((data) => {
-        if (!cancelled) {
-          setInvoice(data);
-          setLoading(false);
-        }
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setError(err.message || "Failed to load invoice");
-          setLoading(false);
-        }
-      });
+      .then((data) => { if (!cancelled) { setInvoice(data); setLoading(false); } })
+      .catch((err) => { if (!cancelled) { setError(err.message || "Failed to load invoice"); setLoading(false); } });
     return () => { cancelled = true; };
   }, [invoiceId]);
 
-  const customerName =
-    invoice?.customerName ?? route?.params?.customerName ?? "Walk-in Customer";
+  const customerName = invoice?.customerName ?? route?.params?.customerName ?? "Walk-in Customer";
 
   const gstLabel = (kind) => {
     if (!invoice?.items?.length) return kind;
     const rates = [...new Set(invoice.items.map((it) => it.gstRate))];
     if (rates.length !== 1) return kind;
-    const pct = rates[0] / 2;
-    return `${kind} (${pct}%)`;
+    return `${kind} (${rates[0] / 2}%)`;
   };
 
   const handleDownloadSharePdf = async () => {
-    if (!invoice) {
-      Alert.alert("Error", "No invoice data to generate PDF");
-      return;
-    }
+    if (!invoice) { Alert.alert("Error", "No invoice data to generate PDF"); return; }
     setPdfBusy(true);
-    try {
-      await generateAndShareInvoicePdf(invoice);
-    } catch (err) {
-      Alert.alert("Error", err.message || "Failed to generate PDF");
-    } finally {
-      setPdfBusy(false);
-    }
+    try { await generateAndShareInvoicePdf(invoice); }
+    catch (err) { Alert.alert("Error", err.message || "Failed to generate PDF"); }
+    finally { setPdfBusy(false); }
   };
 
   if (invoiceId && loading) {
     return (
-      <LinearGradient
-        colors={[Colors.primary, Colors.secondary]}
-        style={[styles.container, styles.centered]}
-      >
-        <ActivityIndicator size="large" color={Colors.textPrimary} />
+      <LinearGradient colors={[Colors.primary, Colors.secondary]} style={styles.centeredContainer}>
+        <ActivityIndicator size="large" color={Colors.highlight} />
+        <Text style={styles.loadingText}>Loading invoice…</Text>
       </LinearGradient>
     );
   }
 
   if (invoiceId && error) {
     return (
-      <LinearGradient
-        colors={[Colors.primary, Colors.secondary]}
-        style={[styles.container, styles.centered]}
-      >
+      <LinearGradient colors={[Colors.primary, Colors.secondary]} style={styles.centeredContainer}>
+        <Text style={styles.errorIcon}>⚠️</Text>
         <Text style={styles.errorText}>{error}</Text>
       </LinearGradient>
     );
   }
 
   return (
-    <LinearGradient
-      colors={[Colors.primary, Colors.secondary]}
-      style={styles.container}
-    >
+    <LinearGradient colors={[Colors.primary, Colors.secondary]} style={styles.container}>
       <StatusBar barStyle="light-content" />
 
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backBtn}
           onPress={() => navigation.goBack()}
+          hitSlop={{ top: 10, left: 10, bottom: 10, right: 10 }}
         >
           <Text style={styles.backBtnText}>← Back</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Invoice</Text>
-        <Text style={styles.subtitle}>
-          {invoice?.invoiceNumber ? `Bill ${invoice.invoiceNumber}` : "Bawaa Pharmacy invoice"}
-        </Text>
+        <View style={styles.headerCenter}>
+          <Image
+            source={require("../../assets/images/logo.png")}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <View>
+            <Text style={styles.title}>Invoice</Text>
+            <Text style={styles.subtitle}>
+              {invoice?.invoiceNumber ? `Bill ${invoice.invoiceNumber}` : "Bawaa Pharmacy invoice"}
+            </Text>
+          </View>
+        </View>
       </View>
 
-      <View style={styles.invoiceCard}>
-        <View style={styles.logoPlaceholder}>
-          <Text style={styles.logoText}>LOGO</Text>
-        </View>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Invoice Card */}
+        <View style={styles.invoiceCard}>
+          {/* Shop Header */}
+          <View style={styles.shopHeader}>
+            <Image
+              source={require("../../assets/images/logo.png")}
+              style={styles.shopLogo}
+              resizeMode="contain"
+            />
+            <View style={styles.shopInfo}>
+              <Text style={styles.shopName}>BAWAA PHARMACY</Text>
+              <Text style={styles.shopDetail}>346, Avinashi Road, Pushpa Theatre Bus Stop</Text>
+              <Text style={styles.shopDetail}>Tirupur 641604</Text>
+              <Text style={styles.shopDetail}>Ph: 0421 2200313, 9442160313</Text>
+              <Text style={styles.shopDetail}>GST: 33AAKFB1720E1Z3</Text>
+              <Text style={styles.shopDetail}>DL. Nos.: CBE/8587 20&21, CBE/5522 20B</Text>
+            </View>
+          </View>
 
-        <Text style={styles.shopName}>Bawaa Pharmacy</Text>
-        <Text style={styles.shopSub}>
-          Tirupur
-        </Text>
+          <View style={styles.divider} />
 
-        <View style={styles.divider} />
+          {/* Customer Info */}
+          <View style={styles.infoGrid}>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Customer</Text>
+              <Text style={styles.infoValue}>{customerName}</Text>
+            </View>
+            {invoice?.doctorName && (
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Doctor</Text>
+                <Text style={styles.infoValue}>{invoice.doctorName}</Text>
+              </View>
+            )}
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Invoice No.</Text>
+              <Text style={styles.infoValue}>{invoice?.invoiceNumber ?? "—"}</Text>
+            </View>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Date</Text>
+              <Text style={styles.infoValue}>
+                {invoice?.invoiceDate
+                  ? new Date(invoice.invoiceDate).toLocaleDateString("en-IN", {
+                      day: "2-digit", month: "short", year: "numeric",
+                    })
+                  : "—"}
+              </Text>
+            </View>
+            {invoice?.paymentMode && (
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Payment</Text>
+                <View style={styles.paymentModeBadge}>
+                  <Text style={styles.paymentModeText}>{invoice.paymentMode}</Text>
+                </View>
+              </View>
+            )}
+          </View>
 
-        <View style={styles.row}>
-          <Text style={styles.label}>Customer</Text>
-          <Text style={styles.value}>{customerName}</Text>
-        </View>
+          <View style={styles.divider} />
 
-        <View style={styles.row}>
-          <Text style={styles.label}>Invoice No</Text>
-          <Text style={styles.value}>{invoice?.invoiceNumber ?? "—"}</Text>
-        </View>
-
-        <View style={styles.row}>
-          <Text style={styles.label}>Date</Text>
-          <Text style={styles.value}>
-            {invoice?.invoiceDate
-              ? new Date(invoice.invoiceDate).toLocaleDateString()
-              : "—"}
-          </Text>
-        </View>
-
-        <View style={styles.divider} />
-
-        {(invoice?.items?.length ?? 0) > 0 ? (
-          invoice.items.map((it, idx) => {
-            const totalItemTax = (it.cgstAmount || 0) + (it.sgstAmount || 0);
-            return (
-              <View key={idx} style={styles.itemRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.item}>
-                    {it.brandName} {it.dosage}
-                  </Text>
-                  <Text style={styles.itemSub}>
-                    HSN:{it.hsnCode || "3004"} | GST:{it.gstRate}% | Qty:{it.quantity}
-                  </Text>
-                  <Text style={styles.itemSub}>
-                    Taxable: ₹{it.taxableValue?.toFixed(2)} | Tax: ₹{totalItemTax.toFixed(2)}
+          {/* Line Items */}
+          <Text style={styles.itemsHeader}>Items</Text>
+          {(invoice?.items?.length ?? 0) > 0 ? (
+            invoice.items.map((it, idx) => {
+              const totalItemTax = (it.cgstAmount || 0) + (it.sgstAmount || 0);
+              const isEven = idx % 2 === 0;
+              return (
+                <View key={idx} style={[styles.itemRow, isEven ? styles.itemRowEven : styles.itemRowOdd]}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.itemName}>{it.brandName} {it.dosage}</Text>
+                    <Text style={styles.itemSub}>
+                      HSN: {it.hsnCode || "3004"} • GST: {it.gstRate}% • Qty: {it.quantity}
+                    </Text>
+                    <Text style={styles.itemSub}>
+                      Taxable: ₹{it.taxableValue?.toFixed(2)} • Tax: ₹{totalItemTax.toFixed(2)}
+                    </Text>
+                  </View>
+                  <Text style={styles.itemPrice}>
+                    ₹{(it.lineTotal - (it.discountAmount || 0)).toFixed(2)}
                   </Text>
                 </View>
-                <Text style={styles.itemPrice}>
-                  ₹{(it.lineTotal - (it.discountAmount || 0)).toFixed(2)}
-                </Text>
-              </View>
-            );
-          })
-        ) : (
-          <View style={styles.itemRow}>
-            <Text style={styles.item}>No items</Text>
-            <Text style={styles.itemPrice}>—</Text>
+              );
+            })
+          ) : (
+            <View style={styles.noItemsRow}>
+              <Text style={styles.noItemsText}>No items in this invoice.</Text>
+            </View>
+          )}
+
+          <View style={styles.divider} />
+
+          {/* Summary */}
+          <View style={styles.summarySection}>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Items</Text>
+              <Text style={styles.summaryValue}>{invoice?.items?.length ?? 0}</Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>{gstLabel("SGST")}</Text>
+              <Text style={styles.summaryValue}>₹{invoice?.sgst?.toFixed(2) ?? "0.00"}</Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>{gstLabel("CGST")}</Text>
+              <Text style={styles.summaryValue}>₹{invoice?.cgst?.toFixed(2) ?? "0.00"}</Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Discount</Text>
+              <Text style={styles.summaryValue}>₹{invoice?.discountAmount?.toFixed(2) ?? "0.00"}</Text>
+            </View>
           </View>
-        )}
 
-        <View style={styles.divider} />
-
-        <View style={styles.row}>
-          <Text style={styles.label}>Subtotal (Inc. GST)</Text>
-          <Text style={styles.value}>
-            ₹{invoice?.subTotal?.toFixed(2) ?? "—"}
-          </Text>
+          {/* Total Banner */}
+          <View style={styles.totalBanner}>
+            <Text style={styles.totalBannerLabel}>TOTAL AMOUNT</Text>
+            <Text style={styles.totalBannerValue}>₹{invoice?.totalAmount?.toFixed(2) ?? "0.00"}</Text>
+          </View>
         </View>
 
-        <View style={styles.row}>
-          <Text style={styles.label}>Taxable Amount</Text>
-          <Text style={styles.value}>
-            ₹{invoice?.taxableAmount?.toFixed(2) ?? "—"}
-          </Text>
-        </View>
-
-        <View style={styles.row}>
-          <Text style={styles.label}>{gstLabel("CGST")}</Text>
-          <Text style={styles.value}>
-            ₹{invoice?.cgst?.toFixed(2) ?? "—"}
-          </Text>
-        </View>
-
-        <View style={styles.row}>
-          <Text style={styles.label}>{gstLabel("SGST")}</Text>
-          <Text style={styles.value}>
-            ₹{invoice?.sgst?.toFixed(2) ?? "—"}
-          </Text>
-        </View>
-
-        <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>TOTAL</Text>
-          <Text style={styles.totalValue}>
-            ₹{invoice?.totalAmount?.toFixed(2) ?? "—"}
-          </Text>
-        </View>
-      </View>
-
-      <TouchableOpacity
-        style={styles.button}
-        activeOpacity={0.85}
-        onPress={handleDownloadSharePdf}
-        disabled={!invoice || pdfBusy}
-      >
-        <Text style={styles.buttonText}>
-          {pdfBusy ? "Generating…" : "Reprint / Share PDF"}
-        </Text>
-      </TouchableOpacity>
+        {/* PDF Button */}
+        <TouchableOpacity
+          style={[styles.pdfButton, (!invoice || pdfBusy) && styles.pdfButtonDisabled]}
+          activeOpacity={0.85}
+          onPress={handleDownloadSharePdf}
+          disabled={!invoice || pdfBusy}
+          id="share-pdf-button"
+        >
+          {pdfBusy ? (
+            <View style={styles.pdfBtnContent}>
+              <ActivityIndicator size="small" color="#0F172A" />
+              <Text style={styles.pdfButtonText}>Generating PDF…</Text>
+            </View>
+          ) : (
+            <Text style={styles.pdfButtonText}>📤  Reprint / Share PDF</Text>
+          )}
+        </TouchableOpacity>
+      </ScrollView>
     </LinearGradient>
   );
 };
@@ -230,164 +242,283 @@ const InvoiceScreen = ({ route }) => {
 export default InvoiceScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: 22,
-    justifyContent: "space-between",
-  },
+  container: { flex: 1 },
 
-  centered: {
+  centeredContainer: {
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    gap: Spacing.md,
   },
 
+  loadingText: {
+    color: Colors.textSecondary,
+    fontSize: FontSize.body,
+  },
+
+  errorIcon: { fontSize: 36 },
+
   errorText: {
-    color: Colors.textPrimary,
-    fontSize: 14,
+    color: Colors.warning,
+    fontSize: FontSize.body,
+    textAlign: "center",
+    paddingHorizontal: Spacing.xl,
   },
 
   header: {
-    marginTop: 56,
-    paddingBottom: 8,
+    paddingTop: SAFE_TOP,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
   },
+
   backBtn: {
     alignSelf: "flex-start",
-    marginBottom: 8,
+    marginBottom: Spacing.md,
+    paddingRight: Spacing.base,
+    paddingVertical: Spacing.xs,
   },
+
   backBtnText: {
     color: Colors.highlight,
-    fontSize: 14,
+    fontSize: FontSize.body,
+    fontWeight: FontWeight.semibold,
+  },
+
+  headerCenter: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+  },
+
+  logo: {
+    width: 42,
+    height: 42,
+    borderRadius: Radius.sm,
   },
 
   title: {
-    fontSize: 28,
-    fontWeight: "800",
+    fontSize: FontSize.titleLg,
+    fontWeight: FontWeight.heavy,
     color: Colors.textPrimary,
   },
 
   subtitle: {
-    fontSize: 13,
+    fontSize: FontSize.subtitle,
     color: Colors.textSecondary,
-    marginTop: 6,
+    marginTop: 2,
+  },
+
+  scrollContent: {
+    paddingHorizontal: Spacing.base,
+    paddingBottom: Spacing.xl,
   },
 
   invoiceCard: {
-    marginTop: 30,
     backgroundColor: Colors.cardBackground,
-    borderRadius: 20,
-    padding: 22,
+    borderRadius: Radius.xl,
+    padding: Spacing.base,
     borderWidth: 1,
     borderColor: Colors.border,
+    marginBottom: Spacing.base,
   },
 
-  logoPlaceholder: {
-    width: 70,
-    height: 70,
-    borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.15)",
-    alignSelf: "center",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 16,
+  shopHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: Spacing.md,
+    marginBottom: Spacing.base,
   },
 
-  logoText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: Colors.textSecondary,
-    letterSpacing: 1,
+  shopLogo: {
+    width: 58,
+    height: 58,
+    borderRadius: Radius.sm,
+    flexShrink: 0,
+  },
+
+  shopInfo: {
+    flex: 1,
   },
 
   shopName: {
-    fontSize: 20,
-    fontWeight: "800",
+    fontSize: FontSize.bodyLg,
+    fontWeight: FontWeight.black,
     color: Colors.textPrimary,
-    textAlign: "center",
+    marginBottom: Spacing.xs,
+    letterSpacing: 0.5,
   },
 
-  shopSub: {
-    fontSize: 11,
+  shopDetail: {
+    fontSize: FontSize.xs,
     color: Colors.textSecondary,
-    textAlign: "center",
-    marginTop: 4,
+    lineHeight: 16,
   },
 
   divider: {
     height: 1,
     backgroundColor: Colors.border,
-    marginVertical: 14,
+    marginVertical: Spacing.md,
   },
 
-  row: {
+  infoGrid: {
+    gap: Spacing.sm,
+  },
+
+  infoRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginVertical: 6,
+    alignItems: "center",
   },
 
-  label: {
-    fontSize: 12,
+  infoLabel: {
+    fontSize: FontSize.sm,
     color: Colors.textSecondary,
   },
 
-  value: {
-    fontSize: 13,
-    fontWeight: "600",
+  infoValue: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.semibold,
     color: Colors.textPrimary,
+    textAlign: "right",
+    flex: 1,
+    paddingLeft: Spacing.md,
+  },
+
+  paymentModeBadge: {
+    backgroundColor: "rgba(56, 189, 248, 0.15)",
+    borderRadius: Radius.pill,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: "rgba(56, 189, 248, 0.25)",
+  },
+
+  paymentModeText: {
+    fontSize: FontSize.xs,
+    color: Colors.highlight,
+    fontWeight: FontWeight.bold,
+  },
+
+  itemsHeader: {
+    fontSize: FontSize.body,
+    fontWeight: FontWeight.bold,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.sm,
   },
 
   itemRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginVertical: 6,
+    alignItems: "flex-start",
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: Radius.sm,
+    marginBottom: Spacing.xs,
   },
 
-  item: {
-    fontSize: 13,
+  itemRowEven: {
+    backgroundColor: "rgba(255,255,255,0.05)",
+  },
+
+  itemRowOdd: {
+    backgroundColor: "transparent",
+  },
+
+  itemName: {
+    fontSize: FontSize.body,
+    fontWeight: FontWeight.semibold,
     color: Colors.textPrimary,
+    marginBottom: 3,
+  },
+
+  itemSub: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    lineHeight: 16,
   },
 
   itemPrice: {
-    fontSize: 14,
-    fontWeight: "700",
+    fontSize: FontSize.body,
+    fontWeight: FontWeight.bold,
     color: Colors.textPrimary,
-  },
-  itemSub: {
-    fontSize: 10,
-    color: Colors.textSecondary,
-    marginTop: 2,
+    marginLeft: Spacing.sm,
   },
 
-  totalRow: {
+  noItemsRow: {
+    paddingVertical: Spacing.base,
+    alignItems: "center",
+  },
+
+  noItemsText: {
+    fontSize: FontSize.body,
+    color: Colors.textSecondary,
+  },
+
+  summarySection: {
+    gap: Spacing.sm,
+  },
+
+  summaryRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 12,
+    alignItems: "center",
   },
 
-  totalLabel: {
-    fontSize: 14,
-    fontWeight: "700",
+  summaryLabel: {
+    fontSize: FontSize.sm,
     color: Colors.textSecondary,
-    letterSpacing: 1,
   },
 
-  totalValue: {
-    fontSize: 18,
-    fontWeight: "900",
+  summaryValue: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.semibold,
+    color: Colors.textPrimary,
+  },
+
+  totalBanner: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "rgba(34, 197, 94, 0.1)",
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    marginTop: Spacing.md,
+    borderWidth: 1,
+    borderColor: "rgba(34, 197, 94, 0.25)",
+  },
+
+  totalBannerLabel: {
+    fontSize: FontSize.bodyLg,
+    fontWeight: FontWeight.bold,
+    color: Colors.accent,
+    letterSpacing: 0.5,
+  },
+
+  totalBannerValue: {
+    fontSize: 22,
+    fontWeight: FontWeight.black,
     color: Colors.accent,
   },
 
-  button: {
-    marginBottom: 30,
-    paddingVertical: 16,
-    borderRadius: 18,
-    backgroundColor: Colors.textPrimary,
+  pdfButton: {
+    paddingVertical: Spacing.md,
+    borderRadius: Radius.lg,
+    backgroundColor: Colors.highlight,
+    alignItems: "center",
+    ...Shadow.sm,
   },
 
-  buttonText: {
-    textAlign: "center",
-    fontSize: 15,
-    fontWeight: "700",
-    color: Colors.primary,
-    letterSpacing: 1,
+  pdfButtonDisabled: { opacity: 0.6 },
+
+  pdfBtnContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+  },
+
+  pdfButtonText: {
+    fontSize: FontSize.bodyLg,
+    fontWeight: FontWeight.bold,
+    color: "#0F172A",
+    letterSpacing: 0.5,
   },
 });

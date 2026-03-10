@@ -7,10 +7,13 @@ import {
   TouchableOpacity,
   TextInput,
   StatusBar,
+  ActivityIndicator,
+  Image,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect } from "@react-navigation/native";
 import Colors from "../constants/styles";
+import { Spacing, FontSize, FontWeight, Radius, Shadow, SAFE_TOP } from "../constants/theme";
 import {
   fetchMedicinesWithVariants,
   fetchLowStockMedicines,
@@ -33,7 +36,6 @@ const MedicineScreen = ({ navigation }) => {
         }),
       ]);
 
-      // Flatten to variant-level list
       const flattened = [];
       data.forEach(({ medicine, variants }) => {
         variants.forEach((v) => {
@@ -69,36 +71,49 @@ const MedicineScreen = ({ navigation }) => {
     }, [loadMedicines])
   );
 
-  const renderItem = ({ item }) => {
+  const filteredVariants = variants.filter((item) => {
+    const q = inventorySearch.trim().toLowerCase();
+    if (!q) return true;
+    const haystack = [item.genericName, item.brandName, item.dosage, item.form, item.packing]
+      .join(" ")
+      .toLowerCase();
+    return haystack.includes(q);
+  });
+
+  const renderItem = ({ item, index }) => {
     const isLowStock = item.quantity <= item.minThreshold;
+    const isEven = index % 2 === 0;
 
     return (
-      <TouchableOpacity style={styles.card} activeOpacity={0.85}>
+      <TouchableOpacity
+        style={[styles.card, isEven ? styles.cardEven : styles.cardOdd]}
+        activeOpacity={0.82}
+      >
+        {/* Card Header */}
         <View style={styles.cardTop}>
-          <View>
+          <View style={styles.cardTopLeft}>
             <Text style={styles.medicineName}>{item.genericName}</Text>
             <Text style={styles.brandName}>
-              {item.brandName} • {item.dosage} • {item.form} • {item.packing}
+              {item.brandName} • {item.dosage} • {item.form}
             </Text>
+            <Text style={styles.packingText}>Batch: {item.batchNumber} • Pack: {item.packing}</Text>
           </View>
-          <Text style={styles.price}>₹ {item.sellingPrice}</Text>
+          <View style={styles.cardTopRight}>
+            <Text style={styles.price}>₹{item.sellingPrice}</Text>
+            <Text style={styles.priceLabel}>Selling Price</Text>
+          </View>
         </View>
 
+        {/* Card Footer */}
         <View style={styles.cardBottom}>
-          <View style={styles.stockRow}>
-            <Text style={styles.stockLabel}>Stock</Text>
-            <Text
-              style={[
-                styles.stockValue,
-                { color: isLowStock ? Colors.warning : Colors.accent },
-              ]}
-            >
-              {item.quantity}
+          <View style={styles.stockBadge}>
+            <Text style={styles.stockBadgeLabel}>Stock: </Text>
+            <Text style={[styles.stockBadgeValue, { color: isLowStock ? Colors.warning : Colors.accent }]}>
+              {item.quantity} units
             </Text>
           </View>
-
           {isLowStock && (
-            <View style={styles.alertRow}>
+            <View style={styles.alertBadge}>
               <Text style={styles.alertIcon}>⚠️</Text>
               <Text style={styles.alertText}>Low Stock</Text>
             </View>
@@ -108,73 +123,100 @@ const MedicineScreen = ({ navigation }) => {
     );
   };
 
-  const filteredVariants = variants.filter((item) => {
-    const q = inventorySearch.trim().toLowerCase();
-    if (!q) return true;
-    const haystack = [
-      item.genericName,
-      item.brandName,
-      item.dosage,
-      item.form,
-      item.packing,
-    ]
-      .join(" ")
-      .toLowerCase();
-    return haystack.includes(q);
-  });
+  const renderEmpty = () => {
+    if (loading) return null;
+    return (
+      <View style={styles.emptyState}>
+        <Text style={styles.emptyIcon}>💊</Text>
+        <Text style={styles.emptyTitle}>No Medicines Found</Text>
+        <Text style={styles.emptySubtitle}>
+          {inventorySearch ? "Try a different search term." : "Tap '+ Add Medicine Stock' to get started."}
+        </Text>
+      </View>
+    );
+  };
 
   return (
-    <LinearGradient
-      colors={[Colors.primary, Colors.secondary]}
-      style={styles.container}
-    >
+    <LinearGradient colors={[Colors.primary, Colors.secondary]} style={styles.container}>
       <StatusBar barStyle="light-content" />
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Medicine Inventory</Text>
-        <Text style={styles.subtitle}>
-          Bawaa Pharmacy • Track stock levels and expiry
-        </Text>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => navigation.goBack()}
+          hitSlop={{ top: 10, left: 10, bottom: 10, right: 10 }}
+        >
+          <Text style={styles.backBtnText}>← Back</Text>
+        </TouchableOpacity>
+        <View style={styles.headerCenter}>
+          <Image
+            source={require("../../assets/images/logo.png")}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <View>
+            <Text style={styles.title}>Medicine Inventory</Text>
+            <Text style={styles.subtitle}>
+              {variants.length} item{variants.length !== 1 ? "s" : ""} • Track stock & expiry
+            </Text>
+          </View>
+        </View>
       </View>
 
-      {/* Low Stock Warnings */}
+      {/* Low Stock Alert Banner */}
       {lowStock.length > 0 && (
-        <View style={styles.lowStockBox}>
-          <Text style={styles.sectionTitle}>Low Stock Alerts</Text>
-          {lowStock.map((item) => (
-            <Text key={item._id} style={styles.lowStockText}>
-              Low Stock: {item.brandName} {item.dosage} ({item.quantity} left)
-            </Text>
-          ))}
+        <View style={styles.lowStockBanner}>
+          <Text style={styles.lowStockBannerIcon}>⚠️</Text>
+          <Text style={styles.lowStockBannerText}>
+            {lowStock.length} item{lowStock.length !== 1 ? "s" : ""} running low on stock
+          </Text>
         </View>
       )}
 
-      {/* Inventory Search */}
-      <TextInput
-        style={styles.input}
-        placeholder="Search inventory (brand / generic / dosage)"
-        placeholderTextColor={Colors.textSecondary}
-        value={inventorySearch}
-        onChangeText={setInventorySearch}
-      />
+      {/* Search Input */}
+      <View style={styles.searchWrapper}>
+        <Text style={styles.searchIcon}>🔍</Text>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search by brand, generic, dosage..."
+          placeholderTextColor={Colors.textSecondary}
+          value={inventorySearch}
+          onChangeText={setInventorySearch}
+        />
+        {inventorySearch.length > 0 && (
+          <TouchableOpacity onPress={() => setInventorySearch("")} hitSlop={{ top: 8, left: 8, bottom: 8, right: 8 }}>
+            <Text style={styles.clearSearch}>✕</Text>
+          </TouchableOpacity>
+        )}
+      </View>
 
       {/* Medicine List */}
-      <FlatList
-        data={filteredVariants}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 30 }}
-        refreshing={loading}
-        onRefresh={loadMedicines}
-      />
+      {loading ? (
+        <View style={styles.loadingState}>
+          <ActivityIndicator size="large" color={Colors.highlight} />
+          <Text style={styles.loadingText}>Loading medicines…</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={filteredVariants}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.listContent}
+          refreshing={loading}
+          onRefresh={loadMedicines}
+          ListEmptyComponent={renderEmpty}
+          ItemSeparatorComponent={() => <View style={{ height: Spacing.sm }} />}
+        />
+      )}
 
-      {/* Add Stock FAB */}
+      {/* FAB */}
       <TouchableOpacity
         activeOpacity={0.9}
         style={styles.fab}
         onPress={() => navigation.navigate("AddMedicine")}
+        id="add-medicine-fab"
       >
         <Text style={styles.fabText}>+ Add Medicine Stock</Text>
       </TouchableOpacity>
@@ -187,219 +229,270 @@ export default MedicineScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: 22,
   },
 
   header: {
-    marginTop: 60,
-    marginBottom: 20,
+    paddingTop: SAFE_TOP,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
+  },
+
+  backBtn: {
+    alignSelf: "flex-start",
+    marginBottom: Spacing.md,
+    paddingRight: Spacing.base,
+    paddingVertical: Spacing.xs,
+  },
+
+  backBtnText: {
+    color: Colors.highlight,
+    fontSize: FontSize.body,
+    fontWeight: FontWeight.semibold,
+  },
+
+  headerCenter: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+  },
+
+  logo: {
+    width: 42,
+    height: 42,
+    borderRadius: Radius.sm,
   },
 
   title: {
-    fontSize: 28,
-    fontWeight: "800",
+    fontSize: FontSize.titleLg,
+    fontWeight: FontWeight.heavy,
     color: Colors.textPrimary,
   },
 
   subtitle: {
-    fontSize: 13,
+    fontSize: FontSize.subtitle,
     color: Colors.textSecondary,
-    marginTop: 6,
+    marginTop: 2,
   },
 
-  addBox: {
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 18,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    marginBottom: 20,
-  },
-
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: Colors.textPrimary,
-    marginBottom: 4,
-  },
-
-  sectionSubtitle: {
-    fontSize: 11,
-    color: Colors.textSecondary,
-    marginBottom: 10,
-  },
-
-  sectionDivider: {
-    height: 1,
-    backgroundColor: Colors.border,
-    marginVertical: 12,
-  },
-
-  dropdown: {
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    marginBottom: 10,
-    maxHeight: 180,
-  },
-
-  dropdownItem: {
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-
-  dropdownText: {
-    color: Colors.textPrimary,
-    fontSize: 13,
-  },
-
-  input: {
-    backgroundColor: "rgba(255,255,255,0.08)",
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    color: Colors.textPrimary,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    marginBottom: 10,
-  },
-
-  fieldLabel: {
-    fontSize: 11,
-    color: Colors.textSecondary,
-    marginBottom: 4,
-  },
-
-  row: {
+  lowStockBanner: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "rgba(239, 68, 68, 0.12)",
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.sm,
+    borderWidth: 1,
+    borderColor: "rgba(239, 68, 68, 0.25)",
+    gap: Spacing.sm,
   },
 
-  half: {
-    width: "48%",
+  lowStockBannerIcon: {
+    fontSize: 16,
   },
 
-  addButton: {
-    backgroundColor: Colors.textPrimary,
-    paddingVertical: 14,
-    borderRadius: 14,
-    marginTop: 6,
+  lowStockBannerText: {
+    fontSize: FontSize.sm,
+    color: Colors.warning,
+    fontWeight: FontWeight.semibold,
+    flex: 1,
   },
 
-  addButtonText: {
-    textAlign: "center",
-    fontWeight: "700",
-    color: Colors.primary,
+  searchWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    paddingHorizontal: Spacing.md,
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
+    minHeight: 46,
+    gap: Spacing.sm,
+  },
+
+  searchIcon: {
+    fontSize: 16,
+  },
+
+  searchInput: {
+    flex: 1,
+    color: Colors.textPrimary,
+    fontSize: FontSize.body,
+    paddingVertical: Spacing.sm,
+  },
+
+  clearSearch: {
+    color: Colors.textSecondary,
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.bold,
+  },
+
+  listContent: {
+    paddingHorizontal: Spacing.base,
+    paddingBottom: 90,
   },
 
   card: {
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 18,
-    padding: 18,
-    marginBottom: 16,
+    borderRadius: Radius.lg,
+    padding: Spacing.base,
     borderWidth: 1,
     borderColor: Colors.border,
+  },
+
+  cardEven: {
+    backgroundColor: "rgba(255,255,255,0.07)",
+  },
+
+  cardOdd: {
+    backgroundColor: "rgba(255,255,255,0.04)",
   },
 
   cardTop: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 10,
+    alignItems: "flex-start",
+    marginBottom: Spacing.md,
+  },
+
+  cardTopLeft: {
+    flex: 1,
+    paddingRight: Spacing.sm,
   },
 
   medicineName: {
-    fontSize: 18,
-    fontWeight: "700",
+    fontSize: FontSize.bodyLg,
+    fontWeight: FontWeight.bold,
     color: Colors.textPrimary,
-  },
-
-  price: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: Colors.highlight,
+    marginBottom: 3,
   },
 
   brandName: {
-    fontSize: 12,
+    fontSize: FontSize.sm,
     color: Colors.textSecondary,
-    marginTop: 4,
+    marginBottom: 2,
+  },
+
+  packingText: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+  },
+
+  cardTopRight: {
+    alignItems: "flex-end",
+  },
+
+  price: {
+    fontSize: FontSize.bodyLg,
+    fontWeight: FontWeight.bold,
+    color: Colors.highlight,
+  },
+
+  priceLabel: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    marginTop: 2,
   },
 
   cardBottom: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
   },
 
-  stockRow: {
+  stockBadge: {
     flexDirection: "row",
     alignItems: "center",
   },
 
-  stockLabel: {
-    fontSize: 12,
+  stockBadgeLabel: {
+    fontSize: FontSize.sm,
     color: Colors.textSecondary,
-    marginRight: 6,
   },
 
-  stockValue: {
-    fontSize: 16,
-    fontWeight: "800",
+  stockBadgeValue: {
+    fontSize: FontSize.sm,
+    fontWeight: FontWeight.bold,
   },
 
-  alertRow: {
+  alertBadge: {
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: "rgba(239, 68, 68, 0.15)",
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: Radius.pill,
+    gap: 4,
   },
 
   alertIcon: {
-    fontSize: 14,
-    marginRight: 4,
+    fontSize: 12,
   },
 
   alertText: {
-    fontSize: 12,
+    fontSize: FontSize.xs,
     color: Colors.warning,
-    fontWeight: "600",
+    fontWeight: FontWeight.bold,
   },
 
-  lowStockBox: {
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 14,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    marginBottom: 12,
+  emptyState: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: Spacing.xxl,
+    paddingHorizontal: Spacing.xl,
   },
 
-  lowStockText: {
-    fontSize: 12,
-    color: Colors.warning,
-    marginTop: 4,
+  emptyIcon: {
+    fontSize: 52,
+    marginBottom: Spacing.base,
+  },
+
+  emptyTitle: {
+    fontSize: FontSize.sectionTitle,
+    fontWeight: FontWeight.bold,
+    color: Colors.textPrimary,
+    marginBottom: Spacing.sm,
+    textAlign: "center",
+  },
+
+  emptySubtitle: {
+    fontSize: FontSize.body,
+    color: Colors.textSecondary,
+    textAlign: "center",
+    lineHeight: 20,
+  },
+
+  loadingState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.md,
+  },
+
+  loadingText: {
+    fontSize: FontSize.body,
+    color: Colors.textSecondary,
   },
 
   fab: {
     position: "absolute",
-    right: 24,
-    bottom: 32,
-    backgroundColor: Colors.textPrimary,
-    borderRadius: 24,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    shadowColor: "#000",
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 4,
+    bottom: 28,
+    alignSelf: "center",
+    backgroundColor: Colors.highlight,
+    borderRadius: Radius.pill,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    ...Shadow.lg,
   },
 
   fabText: {
-    color: Colors.primary,
-    fontWeight: "700",
-    fontSize: 13,
+    color: "#0F172A",
+    fontWeight: FontWeight.bold,
+    fontSize: FontSize.body,
+    letterSpacing: 0.5,
   },
 });
-

@@ -1,8 +1,9 @@
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
+import { LOGO_BASE64 } from "../constants/logoBase64";
 
 const SHOP_HEADER = `
-BAWAA PHARMACY<br/>
+<b>BAWAA PHARMACY</b><br/>
 346, Avinashi Road, Pushpa Theatre Bus Stop, Tirupur 64160<br/>
 Ph No: 0421 2200313, 9442160313<br/>
 GST No: 33AAKFB1720E1Z3<br/>
@@ -49,7 +50,8 @@ export function buildInvoiceHtml(invoice) {
   const totalAmount = invoice.totalAmount != null ? n2(invoice.totalAmount) : "0.00";
 
   const rows = invoice.items
-    .map((it) => {
+    .map((it, idx) => {
+      const sno = idx + 1;
       const desc = [it.brandName, it.dosage].filter(Boolean).join(" ");
       const mrp = n2(it.sellingPrice);
       const qty = it.quantity;
@@ -57,13 +59,13 @@ export function buildInvoiceHtml(invoice) {
       const batch = it.batchNumber || "—";
       const exp = formatDate(it.expiryDate);
       return `<tr>
+        <td class="center">${sno}</td>
         <td>${escapeHtml(desc)}</td>
-        <td>—</td>
-        <td>${mrp}</td>
-        <td>${qty}</td>
-        <td>${amount}</td>
-        <td>${escapeHtml(batch)}</td>
-        <td>${exp}</td>
+        <td class="center">${escapeHtml(batch)}</td>
+        <td class="center">${exp}</td>
+        <td class="num">${qty}</td>
+        <td class="num">${mrp}</td>
+        <td class="num amount">${amount}</td>
       </tr>`;
     })
     .join("");
@@ -75,45 +77,53 @@ export function buildInvoiceHtml(invoice) {
   <meta charset="utf-8">
   <style>
     body { font-family: Arial, sans-serif; font-size: 11px; padding: 12px; color: #111; }
-    .header { text-align: center; margin-bottom: 14px; line-height: 1.4; }
+    .header-container { display: flex; flex-direction: row; align-items: center; justify-content: space-between; margin-bottom: 20px; line-height: 1.5; }
+    .header-logo { height: 70px; width: auto; margin-right: 20px; object-fit: contain; }
+    .header-info { text-align: right; }
+    .header-info b { font-size: 14px; display: block; margin-bottom: 4px; }
     .meta { margin: 12px 0; }
     .meta table { width: 100%; }
     .meta td { padding: 2px 8px 2px 0; }
     table.items { width: 100%; border-collapse: collapse; margin: 10px 0; }
-    table.items th, table.items td { border: 1px solid #333; padding: 4px 6px; text-align: left; }
+    table.items th, table.items td { border: 1px solid #333; padding: 6px 6px; text-align: left; }
     table.items th { background: #f0f0f0; font-size: 10px; }
     table.items td { font-size: 10px; }
-    .totals { margin-top: 12px; }
-    .totals table { width: 280px; margin-left: auto; }
-    .totals td { padding: 2px 8px; }
-    .totals .total-row { font-weight: bold; font-size: 12px; }
-    .footer { margin-top: 20px; font-size: 9px; line-height: 1.5; color: #444; }
+    .center { text-align: center !important; }
+    .num { text-align: right !important; }
+    .amount { font-weight: bold; font-size: 11px; }
+    .totals { margin-top: 16px; border-top: 2px solid #333; padding-top: 8px; }
+    .totals table { width: 240px; margin-left: auto; border-collapse: separate; border-spacing: 0 4px; }
+    .totals td { padding: 4px 8px; text-align: right; }
+    .totals td.tot-label { text-align: right; padding-right: 16px; width: 120px; }
+    .totals .total-row td { font-weight: bold; font-size: 14px; border-top: 1px dashed #777; padding-top: 6px; }
+    .footer { margin-top: 24px; text-align: center; font-size: 9px; line-height: 1.5; color: #444; border-top: 1px solid #ccc; padding-top: 8px; }
   </style>
 </head>
 <body>
-  <div class="header">
-    ${SHOP_HEADER.split("<br/>").map((l) => `<div>${l}</div>`).join("")}
+  <div class="header-container">
+    <img src="${LOGO_BASE64}" class="header-logo" />
+    <div class="header-info">
+      ${SHOP_HEADER.split("<br/>").map((l) => `<div>${l}</div>`).join("")}
+    </div>
   </div>
 
   <div class="meta">
     <table>
-      <tr><td><b>Bill No</b></td><td>${escapeHtml(billNo)}</td></tr>
-      <tr><td><b>Bill Dt</b></td><td>${billDt}</td></tr>
-      <tr><td><b>Sold To</b></td><td>${escapeHtml(soldTo)}</td></tr>
-      <tr><td><b>Dr</b></td><td>${escapeHtml(dr)}</td></tr>
+      <tr><td><b>Bill No:</b> ${escapeHtml(billNo)}</td><td style="text-align:right;"><b>Date:</b> ${billDt}</td></tr>
+      <tr><td><b>Sold To:</b> ${escapeHtml(soldTo)}</td><td style="text-align:right;"><b>Dr:</b> ${escapeHtml(dr)}</td></tr>
     </table>
   </div>
 
   <table class="items">
     <thead>
       <tr>
-        <th>Description</th>
-        <th>Loc</th>
-        <th>MRP</th>
-        <th>Qty</th>
-        <th>Amount</th>
-        <th>Batch No</th>
-        <th>Expiry Date</th>
+        <th class="center" style="width: 5%;">S.No</th>
+        <th style="width: 45%;">Description</th>
+        <th class="center" style="width: 10%;">Batch</th>
+        <th class="center" style="width: 10%;">Expiry</th>
+        <th class="num" style="width: 6%;">Qty</th>
+        <th class="num" style="width: 12%;">MRP</th>
+        <th class="num amount" style="width: 12%;">Amount</th>
       </tr>
     </thead>
     <tbody>
@@ -123,11 +133,11 @@ export function buildInvoiceHtml(invoice) {
 
   <div class="totals">
     <table>
-      <tr><td>Total Items</td><td>${totalItems}</td></tr>
-      <tr><td>SGST</td><td>₹${sgst}</td></tr>
-      <tr><td>CGST</td><td>₹${cgst}</td></tr>
-      <tr><td>Discount</td><td>₹${discount}</td></tr>
-      <tr class="total-row"><td>Total Amount</td><td>₹${totalAmount}</td></tr>
+      <tr><td class="tot-label">Items</td><td>${totalItems}</td></tr>
+      <tr><td class="tot-label">SGST</td><td>₹${sgst}</td></tr>
+      <tr><td class="tot-label">CGST</td><td>₹${cgst}</td></tr>
+      <tr><td class="tot-label">Discount</td><td>₹${discount}</td></tr>
+      <tr class="total-row"><td class="tot-label">TOTAL AMOUNT</td><td>₹${totalAmount}</td></tr>
     </table>
   </div>
 
