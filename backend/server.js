@@ -17,17 +17,21 @@ const app = express();
 // Basic CORS - safe default for mobile apps
 app.use(
   cors({
-    origin: "*", // React Native apps are not browser-origin bound
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,
   })
 );
 
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true }));
 
 // Health check
-app.get("/health", (req, res) => {
-  res.json({ status: "ok" });
+app.get("/api/health", (req, res) => {
+  res.json({
+    success: true,
+    message: "Server is running"
+  });
 });
 
 // Auth routes:
@@ -55,11 +59,15 @@ app.use("/api/import", importRoutes);
 // Global error handler fallback (keeps responses JSON)
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
-  console.error("Unhandled error:", err);
-  res.status(500).json({ detail: "Internal server error" });
+  console.error("SERVER ERROR:", err);
+
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || "Internal Server Error"
+  });
 });
 
-const PORT = process.env.PORT || 8000;
+const PORT = process.env.PORT || 5000;
 
 async function start() {
   try {
@@ -67,7 +75,7 @@ async function start() {
     await seedOwner();
 
     app.listen(PORT, () => {
-      console.log(`Backend server listening on port ${PORT}`);
+      console.log(`Server running on port ${PORT}`);
     });
   } catch (err) {
     console.error("Failed to start server:", err);

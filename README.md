@@ -53,7 +53,7 @@ The core functionality allowing owners to facilitate sales, deduct stock in real
   - Search medicines and pick from specific batch variants (Quantity logic dynamically checked).
   - Calculates subtotal and final total (Note: Specific GST calculation logic was deliberately removed in favor of streamlined subtotals).
 - **Post-Confirmation**: Logs the sale in the database (`Invoice` Schema) and intelligently deducts variant stock.
-- **PDF Generation**: Generates a polished PDF receipt that can be printed or shared directly from the mobile interface utilizing Expo's sharing intent natively.
+- **Redesigned PDF Generation**: Generates a polished, professional PDF receipt. Features reordered columns for enhanced layout, visually emphasized and right-aligned pricing data, a bold totals section, and seamlessly dynamically integrates the pharmacy's logo directly onto the invoice header.
 
 ### 5. Supplier Invoice Processing: PDF → ADC Importer (Newest Engine)
 A powerful internal tool specifically built to handle distributor/vendor supply invoices mapping directly to our inventory ecosystem (`/api/import`).
@@ -62,6 +62,12 @@ A powerful internal tool specifically built to handle distributor/vendor supply 
 - **Parsing logic (`/api/import/parse-pdf`)**: Node backend leverages `pdf-parse` to perform OCR/text extraction converting messy supplier pdf strings into structural JSON arrays containing batches, quantities, forms, and pricing.
 - **Data Preview & Editing (Grid)**: Frontend displays this converted array structurally in `PdfPreviewScreen` using `FlatList` layout with inline `TextInput` fields. This provides the user with an intuitive opportunity to manual-scan, correct parsing errors, or fill missing supplier data dynamically before saving.
 - **Excel Export Utility (`/api/import/export-excel`)**: The precisely verified grid-data is packaged back to the server where `exceljs` efficiently transforms it into an `.xlsx` workbook, paving the way for one-click bulk-stock loading (ADC).
+
+### 6. UI/UX & Design Overhaul (Mobile Frontend)
+A comprehensive frontend restructuring focusing on delivering a premium, modern, and highly intuitive mobile experience without compromising underlying functionality.
+- **Professional Aesthetics**: Implemented consistent typography, optimal padding/margins, and a clean hierarchical layout across all screens to reflect a modern application feel.
+- **Component & Layout enhancements**: Redesigned standard interactive elements (buttons, cards with improved shadow profiles) and improved table layouts for excellent data readability on mobile devices.
+- **Header Structure**: Integrated safe-area adjustments and the customized pharmacy logo seamlessly into a clean, unified header to establish consistent brand identity across app navigation.
 
 ---
 

@@ -37,7 +37,22 @@ const upload = multer({
 
 router.post(
   "/parse-pdf",
-  upload.single("file"),
+  (req, res, next) => {
+    upload.single("file")(req, res, (err) => {
+      if (err instanceof multer.MulterError) {
+        return res.status(400).json({
+          success: false,
+          message: `Multer error: ${err.message}`,
+        });
+      } else if (err) {
+        return res.status(400).json({
+          success: false,
+          message: err.message,
+        });
+      }
+      next();
+    });
+  },
   parsePdf
 );
 
