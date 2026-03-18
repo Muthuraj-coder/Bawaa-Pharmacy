@@ -233,6 +233,7 @@ async function createInvoice(req, res) {
       items,
       customerName,
       doctorName,
+      hospitalName,
       discountAmount = 0,
       paymentMode,
     } = req.body || {};
@@ -265,6 +266,7 @@ async function createInvoice(req, res) {
     const newInvoice = await Invoice.create({
       customerName: customerName?.trim() || undefined,
       doctorName: doctorName?.trim() || undefined,
+      hospitalName: hospitalName?.trim() || undefined,
       items: invoiceItems,
       subTotal,
       discountAmount: parsedDiscount,

@@ -24,6 +24,7 @@ import { generateAndShareInvoicePdf } from "../utils/invoicePdf";
 const BillingScreen = ({ navigation }) => {
   const [customerName, setCustomerName] = useState("");
   const [doctorName, setDoctorName] = useState("");
+  const [hospitalName, setHospitalName] = useState("");
   const [searchText, setSearchText] = useState("");
   const [medicines, setMedicines] = useState([]);
   const [filteredMedicines, setFilteredMedicines] = useState([]);
@@ -138,6 +139,7 @@ const BillingScreen = ({ navigation }) => {
 
   const onGenerateInvoice = async () => {
     if (cart.length === 0) { Alert.alert("Error", "Cart is empty"); return; }
+    if (!customerName || !customerName.trim()) { Alert.alert("Error", "Customer name is required"); return; }
     if (!paymentMode) { Alert.alert("Error", "Please select payment mode"); return; }
     setSubmitting(true);
     try {
@@ -148,8 +150,9 @@ const BillingScreen = ({ navigation }) => {
           sellingPrice: item.sellingPrice,
         })),
         discountAmount: Number(discountAmount) || 0,
-        customerName: customerName.trim() || undefined,
+        customerName: customerName.trim(),
         doctorName: doctorName.trim() || undefined,
+        hospitalName: hospitalName.trim() || undefined,
         paymentMode,
       };
       const invoice = await createInvoice(payload);
@@ -158,7 +161,7 @@ const BillingScreen = ({ navigation }) => {
       }
       Alert.alert("Success", `Invoice ${invoice.invoiceNumber} created!`, [{
         text: "OK", onPress: () => {
-          setCart([]); setCustomerName(""); setDoctorName(""); setDiscountAmount("");
+          setCart([]); setCustomerName(""); setDoctorName(""); setHospitalName(""); setDiscountAmount("");
           if (navigation.goBack) navigation.goBack();
         },
       }]);
@@ -209,17 +212,24 @@ const BillingScreen = ({ navigation }) => {
           </View>
           <TextInput
             style={styles.input}
-            placeholder="Customer Name (optional)"
+            placeholder="Customer Name *"
             placeholderTextColor={Colors.textSecondary}
             value={customerName}
             onChangeText={setCustomerName}
           />
           <TextInput
-            style={[styles.input, { marginBottom: 0 }]}
+            style={styles.input}
             placeholder="Doctor Name (optional)"
             placeholderTextColor={Colors.textSecondary}
             value={doctorName}
             onChangeText={setDoctorName}
+          />
+          <TextInput
+            style={[styles.input, { marginBottom: 0 }]}
+            placeholder="Hospital Name (optional)"
+            placeholderTextColor={Colors.textSecondary}
+            value={hospitalName}
+            onChangeText={setHospitalName}
           />
         </View>
 

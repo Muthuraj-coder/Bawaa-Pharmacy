@@ -12,8 +12,9 @@ const host = Constants.expoConfig?.hostUri?.split(":")?.[0];
 // - Android emulator (it can also reach the host via this LAN IP;
 //   alternatively you can temporarily hard‑code "http://10.0.2.2:8000"
 //   if needed for local Android emulator testing).
-const BASE_URL =
-  __DEV__ && host ? `http://${host}:8000` : "http://localhost:8000";
+
+// Use production URL for deployed backend
+const BASE_URL = "https://bawaa-pharmacy.onrender.com";
 
 /**
  * Safely parse backend response

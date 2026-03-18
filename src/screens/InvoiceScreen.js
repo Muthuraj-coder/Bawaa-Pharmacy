@@ -133,6 +133,12 @@ const InvoiceScreen = ({ route, navigation }) => {
                 <Text style={styles.infoValue}>{invoice.doctorName}</Text>
               </View>
             )}
+            {invoice?.hospitalName && (
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Hospital</Text>
+                <Text style={styles.infoValue}>{invoice.hospitalName}</Text>
+              </View>
+            )}
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Invoice No.</Text>
               <Text style={styles.infoValue}>{invoice?.invoiceNumber ?? "—"}</Text>

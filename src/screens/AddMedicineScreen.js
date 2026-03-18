@@ -207,34 +207,26 @@ const AddMedicineScreen = ({ navigation }) => {
               </View>
             )}
 
-            {selectedMasterId && (
-              <View style={styles.masterSelectedBadge}>
-                <Text style={styles.masterSelectedText}>✓ Auto-filled from master. Fields locked.</Text>
-              </View>
-            )}
-
             {/* Brand & Dosage */}
             <View style={styles.fieldRow}>
               <View style={styles.halfField}>
                 <Text style={styles.fieldLabel}>Brand Name *</Text>
                 <TextInput
-                  style={[styles.input, selectedMasterId && styles.inputLocked]}
+                  style={styles.input}
                   placeholder="Brand Name"
                   placeholderTextColor={Colors.textSecondary}
                   value={brandName}
                   onChangeText={setBrandName}
-                  editable={!selectedMasterId}
                 />
               </View>
               <View style={styles.halfField}>
                 <Text style={styles.fieldLabel}>Dosage *</Text>
                 <TextInput
-                  style={[styles.input, selectedMasterId && styles.inputLocked]}
+                  style={styles.input}
                   placeholder="e.g. 500mg"
                   placeholderTextColor={Colors.textSecondary}
                   value={dosage}
                   onChangeText={setDosage}
-                  editable={!selectedMasterId}
                 />
               </View>
             </View>
@@ -244,23 +236,21 @@ const AddMedicineScreen = ({ navigation }) => {
               <View style={styles.halfField}>
                 <Text style={styles.fieldLabel}>Form *</Text>
                 <TextInput
-                  style={[styles.input, selectedMasterId && styles.inputLocked]}
+                  style={styles.input}
                   placeholder="Tablet / Capsule"
                   placeholderTextColor={Colors.textSecondary}
                   value={form}
                   onChangeText={setForm}
-                  editable={!selectedMasterId}
                 />
               </View>
               <View style={styles.halfField}>
                 <Text style={styles.fieldLabel}>Packing *</Text>
                 <TextInput
-                  style={[styles.input, selectedMasterId && styles.inputLocked]}
+                  style={styles.input}
                   placeholder="e.g. Strip / 15's"
                   placeholderTextColor={Colors.textSecondary}
                   value={packing}
                   onChangeText={setPacking}
-                  editable={!selectedMasterId}
                 />
               </View>
             </View>
@@ -270,12 +260,11 @@ const AddMedicineScreen = ({ navigation }) => {
               <View style={styles.halfField}>
                 <Text style={styles.fieldLabel}>HSN Code</Text>
                 <TextInput
-                  style={[styles.input, selectedMasterId && styles.inputLocked]}
+                  style={styles.input}
                   placeholder="3004"
                   placeholderTextColor={Colors.textSecondary}
                   value={hsnCode}
                   onChangeText={setHsnCode}
-                  editable={!selectedMasterId}
                 />
               </View>
               <View style={styles.halfField}>
@@ -285,8 +274,7 @@ const AddMedicineScreen = ({ navigation }) => {
                     <TouchableOpacity
                       key={rate}
                       style={[styles.gstBtn, gstRate == rate && styles.gstBtnActive]}
-                      onPress={() => !selectedMasterId && setGstRate(String(rate))}
-                      disabled={!!selectedMasterId}
+                      onPress={() => setGstRate(String(rate))}
                     >
                       <Text style={[styles.gstBtnText, gstRate == rate && styles.gstBtnTextActive]}>
                         {rate}%

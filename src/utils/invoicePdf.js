@@ -43,6 +43,7 @@ export function buildInvoiceHtml(invoice) {
   const billDt = formatDate(invoice.invoiceDate);
   const soldTo = invoice.customerName || "Walk-in Customer";
   const dr = invoice.doctorName || "—";
+  const hosp = invoice.hospitalName || "—";
   const totalItems = invoice.items.length;
   const sgst = invoice.sgst != null ? n2(invoice.sgst) : "0.00";
   const cgst = invoice.cgst != null ? n2(invoice.cgst) : "0.00";
@@ -110,7 +111,8 @@ export function buildInvoiceHtml(invoice) {
   <div class="meta">
     <table>
       <tr><td><b>Bill No:</b> ${escapeHtml(billNo)}</td><td style="text-align:right;"><b>Date:</b> ${billDt}</td></tr>
-      <tr><td><b>Sold To:</b> ${escapeHtml(soldTo)}</td><td style="text-align:right;"><b>Dr:</b> ${escapeHtml(dr)}</td></tr>
+      <tr><td><b>Sold To:</b> ${escapeHtml(soldTo)}</td><td style="text-align:right;"><b>Doctor:</b> ${escapeHtml(dr)}</td></tr>
+      <tr><td><b>Hospital:</b> ${escapeHtml(hosp)}</td><td></td></tr>
     </table>
   </div>
 

@@ -94,6 +94,10 @@ const invoiceSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    hospitalName: {
+      type: String,
+      trim: true,
+    },
     items: {
       type: [invoiceItemSchema],
       required: true,
